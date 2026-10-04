@@ -196,6 +196,42 @@ export const ANIMALS: AnimalInfo[] = [
       'Dank je wel! Ik kom weer langs.',
     ],
   },
+  {
+    id: 'olifant',
+    naam: 'Ollie',
+    ask: [
+      'Toet toet! Ik ben Ollie de olifant. Hoi Katrien!',
+      'Ollie wil het weten: hoe zeg je dit in het Engels?',
+      'Hoi Katrien! Ollie heeft een Engels vraagje.',
+      'Toet! Help je Ollie even met Engels?',
+    ],
+    askWord: [
+      'Toet toet! Weet jij wat {woord} betekent?',
+      'Hoi Katrien! Wat is {woord} in het Nederlands?',
+      'Ollie hoorde {woord}. Wat is dat?',
+      'Ollie wil het weten: wat betekent {woord}?',
+    ],
+    happy: [
+      'Toeteroe! Goed zo!',
+      'Ollie vergeet nooit iets. Jij ook niet!',
+      'Toet toet! Helemaal goed, Katrien!',
+      'Yes! Mijn slurf gaat omhoog van blijdschap!',
+      'Wat knap! Mijn oren flapperen ervan.',
+    ],
+    learn: [
+      'Toet. Nu weet je het. Volgende keer lukt het vast.',
+      'Geeft niks, Katrien. Ollie leert ook elke dag.',
+      'Luister, zo zeg je het. Dat onthouden we samen!',
+      'Nu ken je het woord. Straks vraagt Ollie het nog eens.',
+      'Zeg het maar even na. Dan vergeet je het niet!',
+    ],
+    bye: [
+      'Toet toet! Thank you, Katrien!',
+      'Ollie zwemt weer naar huis. Bye bye!',
+      'Dank je wel! Ollie komt gauw terug.',
+      'Toeteroe, tot snel!',
+    ],
+  },
 ]
 
 export function animalById(id: AnimalId): AnimalInfo {

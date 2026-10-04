@@ -12,15 +12,16 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
  * Units: 1 = one island tile. Feet at y = 0, facing +Z.
  */
 
-export type AnimalId = 'eend' | 'schildpad' | 'uil' | 'konijn' | 'kikker'
+export type AnimalId = 'eend' | 'schildpad' | 'uil' | 'konijn' | 'kikker' | 'olifant'
 
-export const ANIMAL_IDS: AnimalId[] = ['eend', 'schildpad', 'uil', 'konijn', 'kikker']
+export const ANIMAL_IDS: AnimalId[] = ['eend', 'schildpad', 'uil', 'konijn', 'kikker', 'olifant']
 
 /** How the animal travels to the island. */
 export const ANIMAL_TRAVEL: Record<AnimalId, 'swim' | 'boat' | 'fly' | 'hop'> = {
   eend: 'swim',
   schildpad: 'swim',
   kikker: 'swim',
+  olifant: 'swim',
   uil: 'fly',
   konijn: 'boat',
 }
@@ -45,6 +46,8 @@ export interface AnimalParts {
   tail?: THREE.Object3D
   shell?: THREE.Object3D
   nose?: THREE.Object3D
+  /** Trunk segments from the root to the tip, each a child pivot of the previous (elephant). */
+  trunk?: THREE.Object3D[]
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +69,8 @@ const smallSphereGeo = () => cachedGeo('sphere-s', () => new THREE.SphereGeometr
 const hemiGeo = () =>
   cachedGeo('hemi', () => new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2))
 const coneGeo = () => cachedGeo('cone', () => new THREE.ConeGeometry(1, 1, 10))
+/** Unit cylinder, thinner at the bottom: for tapering chains like the elephant's trunk. */
+const taperGeo = () => cachedGeo('cyl-taper', () => new THREE.CylinderGeometry(1, 0.84, 1, 12))
 const cylGeo = () => cachedGeo('cyl', () => new THREE.CylinderGeometry(1, 1, 1, 14))
 const hexGeo = () => cachedGeo('hex', () => new THREE.CylinderGeometry(1, 1, 1, 6))
 const smileGeo = (r: number, tube: number, arc: number) =>
@@ -562,6 +567,94 @@ function buildFrog(): THREE.Group {
   })
 }
 
+function buildElephant(): THREE.Group {
+  const root = new THREE.Group()
+  const rig = pivot(root)
+  const SKIN = mat('#c9c2dc')
+  const SKIN_D = mat('#b2a9c8')
+  const PINK = mat('#f6b8c4')
+  const NAIL = mat('#f8f1e4', 0.6)
+
+  // The biggest visitor: about 0.75 tall, with a round, chubby body.
+  const body = pivot(rig, 0, 0, 0)
+  const bc: V3 = [0, 0.33, -0.04]
+  const br: V3 = [0.26, 0.22, 0.3]
+  mesh(body, sphereGeo(), SKIN, bc, br)
+  const tail = pivot(body, 0, 0.36, -0.32)
+  mesh(tail, cylGeo(), SKIN_D, [0, -0.06, -0.02], [0.012, 0.13, 0.012], [-0.35, 0, 0])
+  mesh(tail, smallSphereGeo(), SKIN_D, [0, -0.125, -0.045], [0.025, 0.035, 0.025])
+
+  // four stubby legs with cream toenails
+  const leg = (x: number, z: number) => {
+    const p = pivot(rig, x, 0.2, z)
+    mesh(p, cylGeo(), SKIN, [0, -0.1, 0], [0.075, 0.2, 0.075])
+    for (const nx of [-0.035, 0, 0.035]) {
+      mesh(p, smallSphereGeo(), NAIL, [nx, -0.18, 0.066], [0.02, 0.018, 0.012])
+    }
+    return p
+  }
+  const legFL = leg(0.14, 0.13)
+  const legFR = leg(-0.14, 0.13)
+  const legL = leg(0.14, -0.2)
+  const legR = leg(-0.14, -0.2)
+
+  const head = pivot(rig, 0, 0.44, 0.2)
+  const hc: V3 = [0, 0.1, 0.06]
+  const hr: V3 = [0.2, 0.19, 0.18]
+  mesh(head, sphereGeo(), SKIN, hc, hr)
+  const eyes = [
+    eye(head, hc, hr, 0.42, 0.2, 0.026, -0.006),
+    eye(head, hc, hr, -0.42, 0.2, 0.026, -0.006),
+  ]
+  patch(head, mat(BLUSH), hc, hr, 0.72, -0.08, [0.04, 0.025, 0.012], -0.002)
+  patch(head, mat(BLUSH), hc, hr, -0.72, -0.08, [0.04, 0.025, 0.012], -0.002)
+  const mouth = mouthPivot(head, mat('#c46a80', 0.6), hc, hr, 0, -0.72, [0.035, 0.025, 0.01], -0.004)
+
+  // big round ears, pink inside, swept back a little
+  const ear = (s: number) => {
+    const p = pivot(head, s * 0.16, 0.13, 0.02)
+    p.rotation.set(0, s * 0.45, s * -0.12)
+    mesh(p, sphereGeo(), SKIN, [s * 0.12, -0.01, 0], [0.15, 0.17, 0.03])
+    mesh(p, sphereGeo(), PINK, [s * 0.125, -0.015, 0.016], [0.105, 0.125, 0.02])
+    return p
+  }
+  const earL = ear(1)
+  const earR = ear(-1)
+
+  // trunk: a chain of tapering segments that hangs down and curls up at the tip
+  const trunk: THREE.Object3D[] = []
+  const SEG = 0.072
+  const curl = [-0.15, -0.05, -0.15, -0.45, -0.6]
+  let parent: THREE.Object3D = head
+  let r = 0.056
+  for (let i = 0; i < curl.length; i++) {
+    const p = i === 0 ? pivot(parent, 0, 0.085, 0.215) : pivot(parent, 0, -SEG, 0)
+    p.rotation.x = curl[i]
+    mesh(p, smallSphereGeo(), SKIN, [0, 0, 0], r)
+    mesh(p, taperGeo(), SKIN, [0, -SEG / 2, 0], [r, SEG, r])
+    trunk.push(p)
+    parent = p
+    r *= 0.86
+  }
+  mesh(parent, smallSphereGeo(), SKIN, [0, -SEG, 0], r)
+  mesh(parent, smallSphereGeo(), SKIN_D, [0, -SEG - r * 0.75, 0], [r * 0.6, r * 0.35, r * 0.6])
+
+  // a tiny rainbow flower on his head
+  const flower = new THREE.Group()
+  head.add(flower)
+  stickTo(flower, hc, hr, 0.5, 0.9, -0.004)
+  const PETALS = ['#ff9aa8', '#ffc48a', '#ffe98a', '#a8e6a0', '#9fd3f0', '#c3a8f0']
+  PETALS.forEach((c, i) => {
+    const a = (i / PETALS.length) * Math.PI * 2
+    mesh(flower, smallSphereGeo(), mat(c, 0.6), [Math.cos(a) * 0.032, Math.sin(a) * 0.032, 0.006], [0.024, 0.024, 0.012])
+  })
+  mesh(flower, smallSphereGeo(), mat('#fff3b0', 0.5), [0, 0, 0.014], 0.017)
+
+  return finish(root, 'olifant', {
+    rig, body, head, eyes, jaw: mouth, legL, legR, legFL, legFR, earL, earR, tail, trunk,
+  })
+}
+
 /** Builds a fresh animal. Feet/bottom at y = 0, centred on x/z = 0, facing +Z. */
 export function buildAnimal(id: AnimalId): THREE.Group {
   switch (id) {
@@ -570,6 +663,7 @@ export function buildAnimal(id: AnimalId): THREE.Group {
     case 'uil': return buildOwl()
     case 'konijn': return buildRabbit()
     case 'kikker': return buildFrog()
+    case 'olifant': return buildElephant()
   }
 }
 
@@ -656,6 +750,8 @@ export function animateAnimal(group: THREE.Group, state: AnimalState, t: number,
         if (P.legFL) P.legFL.rotation.x += 0.4 * pad
         if (P.legFR) P.legFR.rotation.x -= 0.4 * pad
       } else {
+        // the elephant sits deeper in the water, trunk up like a snorkel
+        if (id === 'olifant') P.rig.position.y -= 0.12
         if (P.legL) P.legL.rotation.x += 0.7 * pad
         if (P.legR) P.legR.rotation.x -= 0.7 * pad
       }
@@ -734,6 +830,28 @@ export function animateAnimal(group: THREE.Group, state: AnimalState, t: number,
         else if (id !== 'uil') P.jaw.scale.y = 0.8
       }
       break
+    }
+  }
+
+  // elephant: ears flap slowly, trunk sways and curls; it lifts up on a right answer
+  if (id === 'olifant') {
+    if (P.earL && P.earR) {
+      const flap = 0.16 * Math.sin(tt * 1.7) + (state === 'happy' ? 0.25 * Math.sin(t * 14) : 0)
+      P.earL.rotation.y += flap
+      P.earR.rotation.y -= flap
+    }
+    if (P.trunk) {
+      let lift = 0
+      if (state === 'happy') lift = 0.45
+      else if (state === 'swim') lift = 0.3
+      else if (state === 'talk') lift = 0.08 + 0.06 * Math.sin(t * TAU * 2.5)
+      const n = P.trunk.length
+      for (let i = 0; i < n; i++) {
+        const seg = P.trunk[i]
+        seg.rotation.x -= lift + 0.07 * (1 + Math.sin(tt * 0.9 - i * 0.6)) * (i / n)
+        seg.rotation.z += 0.1 * Math.sin(tt * 1.2 - i * 0.5)
+        if (state === 'happy') seg.rotation.z += 0.08 * Math.sin(t * 12 - i * 0.8)
+      }
     }
   }
 
