@@ -1,38 +1,34 @@
-# Assets die het spel mooier maken (allemaal optioneel)
+# Assets van Rainbow Island
 
-Het spel draait volledig zonder extra bestanden: Kit Nugget is een sprite uit Kit Nugget Klimt, de dieren en meubels zijn figuurtjes uit code. Wat hieronder staat maakt het mooier. Gooi het in `public/models/` of `public/sprites/`, commit en push: de build pakt het vanzelf op (geen code aanpassen).
+Het spel draait ook zonder extra bestanden: zonder 3D-model wordt Katrien een sprite, zonder sprites een figuurtje uit code (wit met zwarte en oranje vlekken). De dieren en meubels zijn figuurtjes uit code.
 
-## 1. Kit Nugget in 3D (grootste winst)
+## 1. Katrien in 3D
 
-**Bestand:** `public/models/kit-nugget.glb`
+**Bestand:** `public/models/katrien.glb` (ca. 18k driehoeken, ca. 0,8 MB, texture 1024 jpeg met normal map).
 
-- Maak met Tripo3D (image to 3D) een model van `kit-nugget-klimt/reference/sheet.jpeg` (vooraanzicht plus zijaanzicht helpen).
-- Exporteer als **één .glb met ingebakken textures** (embedded). Een .glb met een losse `Textures/`-map wordt wit, zoals de Lexi Brawl-characters.
-- Houd het klein: liefst onder 3 MB, max ca. 20k driehoeken (iPad en iPhone moeten 60 fps halen). In Tripo: "low poly" of "smart low poly", texture 1024.
-- Staande houding, pootjes op de grond, kijkt naar voren. Een skelet of animaties zijn niet nodig: het spel laat het hele model wiebelen, springen, draaien en liggen in code. Heeft het model toch animaties met namen als `idle` of `walk`, dan worden die gebruikt.
-- Het spel schaalt het model zelf naar één tegel hoog.
+- Bron: `glbs/Meshy_AI_Calico_Character_Shee_1004092048_texture.glb` (Meshy, gemaakt van Katja's character sheet). `glbs/` staat in `.gitignore`.
+- Versimpeld met `scripts/simplify-glb.mjs`, zie `scripts/README-glb.md` (ratio 0.075, texture 1024, `normal`).
+- Ze staat op vier pootjes en kijkt naar +Z (naar de kijker). Het spel maakt haar 0,85 tegel hoog en zet haar pootjes midden op de tegel; de lange staart steekt naar achteren uit.
+- Hoedjes en spulletjes voor op de kop komen als plaatje boven haar kop. Capes zie je alleen op de sprites.
 
-Testen: zet het bestand neer, `npm run dev`, en open `?cat=glb` (of gewoon zonder parameter). Terug naar de sprite: `?cat=sprite`.
+Testen: `npm run dev` en open `?cat=glb`. Sprite: `?cat=sprite`. Figuurtje uit code: `?cat=primitive`.
 
-## 2. Dieren in 3D (optioneel)
+## 2. Sprites (uit Rainbow Kitten)
 
-**Bestanden:** `public/models/eend.glb`, `schildpad.glb`, `uil.glb`, `konijn.glb`, `kikker.glb`
+`public/sprites/`: `beg` (staan, gewoon en verbaasd), `confetti` (blij), `jump` (springen), `sleep` (slapen) en `wake` (wakker worden, nog niet gekoppeld).
+`hang`, `happy` en `surprised` uit Rainbow Kitten leunen tegen een muur en worden niet gebruikt.
+De ankers voor hoedjes (kop, gezicht, nek) staan in `src/scene/dressup.ts`.
 
-Zelfde regels als hierboven (één .glb, embedded textures, klein). Staand, kijkend naar voren, schattig en pastel. Ontbreekt er een, dan gebruikt het spel het figuurtje uit code.
+## 3. Aankleden
 
-## 3. Nieuwe sprites (als er geen 3D-model komt)
+`public/items/`: `bow`, `cape`, `crown`, `mouse-toy` en `party-hat` komen uit Rainbow Kitten (kroon en muisje vervangen die van Kit Nugget); `bell`, `bowtie`, `feather`, `fish`, `helmet` en `yarn` uit Kit Nugget.
+Getekend in code (`src/scene/dressart.ts`): zonnebril, hoge hoed, lama, ketting, prinsessenkroontje, eenhoornhoorn, bloemenkransje, hartjesbril, regenboogstrik, sterrenspeldje en de gekleurde capes.
+Wat wanneer vrijkomt staat in `src/content/looks.ts`.
 
-De sprites `happy` en `surprised` uit Klimt hangen aan een krabpaal (met uitsparing), dus die gebruikt het eiland niet. Nu doet `jump` dienst als blij en `beg` als verbaasd (met een "!" erboven). Nieuwe plaatjes, zelfde stijl als de character sheet, op groen scherm, staand op de grond, volledig in beeld:
+## 4. Geluid
 
-| Naam | Wat |
-|---|---|
-| `stand-happy` | staat, ogen dicht van plezier, grote lach |
-| `stand-surprised` | staat, grote ogen, o-mondje, oortjes omhoog |
-| `walk` | loopt naar rechts, één poot vooruit |
-| `sit` | zit rechtop, staart om de pootjes |
+`public/sounds/`: `meow-1`, `meow-2` en `purr` zijn Katja's geluiden uit Rainbow Kitten. Goed-geluid, overwinning en startgeluid komen uit Lexi Brawl. De rest is WebAudio-synth.
 
-Lever ze aan als PNG of JPEG op groen; Claude keyt ze uit en koppelt ze (`src/scene/cat.ts` en `src/scene/dressup.ts`).
+## 5. Icoon
 
-## 4. Geluid (optioneel)
-
-`public/sounds/` heeft nu: goed-geluid, overwinning en startgeluid uit Lexi Brawl, miauw en spinnen uit Klimt. De rest is WebAudio-synth. Een zacht golfjes-geluid (loop, 20 tot 40 seconden, mp3) zou sfeer geven.
+`public/misc/icon-192.png`, `icon-512.png` en `apple-touch-icon.png` (180): Katja's `beg`-sprite op een pastel achtergrond (roze, lila, lichtblauw), binnen de veilige zone voor maskable icons.

@@ -38,8 +38,12 @@ export interface CatAvatar {
   setAccessories?(canvas: HTMLCanvasElement | null): void
 }
 
-/** Accessory canvas layout, shared with dressup.ts: the head top sits at (0.5, ANCHOR_Y), the head is HEAD_W wide. */
-export const ACCESSORY_ANCHOR_Y = 0.6
+/**
+ * Accessory canvas layout, shared with dressup.ts: the canvas is ASPECT times as tall as it
+ * is wide, the head top sits at (0.5, ANCHOR_Y) of it and the head is HEAD_W of its width.
+ */
+export const ACCESSORY_ASPECT = 1.25
+export const ACCESSORY_ANCHOR_Y = 0.48
 export const ACCESSORY_HEAD_W = 0.5
 const _acc = new THREE.Vector3()
 
@@ -87,24 +91,25 @@ function approachAngle(cur: number, target: number, k: number): number {
 // 2. Sprites
 // ---------------------------------------------------------------------------
 
-type SpriteKey = 'beg' | 'jump' | 'sleep'
+type SpriteKey = 'beg' | 'jump' | 'sleep' | 'confetti'
 /**
- * happy.webp / surprised.webp from Klimt are pole-hanging poses (cut where the pole was),
- * so they are not used: happy shows the jump art, surprised the beg art plus a code-driven
- * reaction in the scene.
+ * Katja's art from Rainbow Kitten. hang.webp, happy.webp and surprised.webp lean against a
+ * wall, so they are not used: happy shows the confetti art (standing, waving), surprised the
+ * beg art plus a code-driven reaction in the scene. wake.webp is shipped but has no pose yet.
  */
 const POSE_SPRITE: Record<CatPose, SpriteKey> = {
   idle: 'beg',
-  happy: 'jump',
+  happy: 'confetti',
   jump: 'jump',
   sleep: 'sleep',
   surprised: 'beg',
 }
-/** Height in tiles per sprite (art is drawn at different zoom levels). */
+/** Height in tiles per sprite (art is drawn at different zoom levels; confetti has stars above her head). */
 const SPRITE_HEIGHT: Record<SpriteKey, number> = {
   beg: 1.15,
   jump: 1.15,
   sleep: 0.72,
+  confetti: 1.22,
 }
 const POSES: CatPose[] = ['idle', 'happy', 'jump', 'sleep', 'surprised']
 
@@ -154,7 +159,7 @@ class SpriteCat implements CatAvatar {
 
   static async load(base: string): Promise<SpriteCat> {
     const loader = new THREE.TextureLoader()
-    const keys: SpriteKey[] = ['beg', 'jump', 'sleep']
+    const keys: SpriteKey[] = ['beg', 'jump', 'sleep', 'confetti']
     const results = await Promise.all(
       keys.map((k) =>
         loader.loadAsync(`${base}sprites/${k}.webp`).then(
@@ -274,7 +279,7 @@ class SpriteCat implements CatAvatar {
     const sx = this.faceX * Math.cos(az) - this.faceZ * Math.sin(az)
     if (sx > 0.08) this.faceRight = true
     else if (sx < -0.08) this.faceRight = false
-    // all sprites look left in the art; flip to look right (quick squeeze through zero)
+    // the sprites look left (or ahead) in the art; flip to look right (quick squeeze through zero)
     const target = this.faceRight ? -1 : 1
     const step = dt * 9
     if (this.flip < target) this.flip = Math.min(target, this.flip + step)
@@ -531,12 +536,16 @@ abstract class Cat3D implements CatAvatar {
 // 3. Primitive kitten
 // ---------------------------------------------------------------------------
 
-const FUR = '#f0a055'
-const STRIPE = '#d9793a'
-const CREAM = '#f8dcae'
-const PINK = '#f2a39a'
-const EYE = '#4a2a18'
+/** Calico colours from Katja's character sheet. */
+const WHITE = '#f7f3ee'
+const PAW = '#efe6df'
+const BLACK = '#34302f'
+const ORANGE = '#ef9a45'
+const PINK = '#f4a3b4'
+const EYE = '#c8892f'
+const PUPIL = '#2a1a10'
 
+/** Katrien built from primitives: a white kitten with black and orange patches. */
 class PrimitiveCat extends Cat3D {
   readonly kind = 'primitive' as const
   private readonly geos: THREE.BufferGeometry[] = []
@@ -550,11 +559,13 @@ class PrimitiveCat extends Cat3D {
   constructor() {
     super()
     this.baseHeight = 1.0
-    const fur = this.mat(FUR)
-    const stripe = this.mat(STRIPE)
-    const cream = this.mat(CREAM)
+    const fur = this.mat(WHITE)
+    const paw = this.mat(PAW)
+    const black = this.mat(BLACK)
+    const orange = this.mat(ORANGE)
     const pink = this.mat(PINK)
-    const eye = this.mat(EYE, 0.2)
+    const eye = this.mat(EYE, 0.25)
+    const pupil = this.mat(PUPIL, 0.1)
     const white = new THREE.MeshBasicMaterial({ color: '#ffffff' })
     this.mats.push(white)
     const sph = this.geo(new THREE.SphereGeometry(1, 20, 16))
@@ -581,23 +592,20 @@ class PrimitiveCat extends Cat3D {
       return mesh
     }
 
-    // body
+    // body: white with an orange patch on one side of the back and a black one on the other
     part(g, sph, fur, [0, 0.33, -0.02], [0.24, 0.23, 0.3])
-    part(g, sph, cream, [0, 0.31, 0.12], [0.17, 0.17, 0.17])
-    for (let i = 0; i < 3; i++) {
-      const z = -0.16 + i * 0.1
-      part(g, sph, stripe, [0, 0.52 - Math.abs(z + 0.02) * 0.25, z], [0.16, 0.035, 0.035])
-    }
-    // legs + paws
+    part(g, sph, orange, [-0.08, 0.41, 0.06], [0.17, 0.14, 0.17])
+    part(g, sph, black, [0.09, 0.4, -0.15], [0.16, 0.15, 0.16])
+    // legs + paws (one black back leg, like in the art)
     for (const [x, z] of [[-0.12, 0.14], [0.12, 0.14], [-0.12, -0.16], [0.12, -0.16]] as const) {
       const leg = new THREE.Group()
       leg.position.set(x, 0.2, z)
       g.add(leg)
-      part(leg, cyl, fur, [0, -0.08, 0], [0.072, 0.17, 0.072])
-      part(leg, lowSph, cream, [0, -0.17, 0.02], [0.08, 0.05, 0.095])
+      part(leg, cyl, x > 0 && z < 0 ? black : fur, [0, -0.08, 0], [0.072, 0.17, 0.072])
+      part(leg, lowSph, paw, [0, -0.17, 0.02], [0.08, 0.05, 0.095])
       this.legs.push(leg)
     }
-    // tail: a chain of segments
+    // tail: a chain of segments in black and orange bands
     let parent: THREE.Object3D = g
     const tailBase = new THREE.Group()
     tailBase.position.set(0, 0.36, -0.3)
@@ -609,39 +617,38 @@ class PrimitiveCat extends Cat3D {
       seg.position.set(0, i === 0 ? 0 : 0.085, 0)
       parent.add(seg)
       const r = 0.058 - i * 0.003
-      part(seg, sph, i === 4 ? cream : i % 2 ? stripe : fur, [0, 0.045, 0], [r, 0.065, r])
+      part(seg, sph, i % 2 ? orange : black, [0, 0.045, 0], [r, 0.065, r])
       this.tail.push(seg)
       parent = seg
     }
-    // head
+    // head: white with a white blaze down the middle, black patch on one side, orange on the other
     this.head.position.set(0, 0.66, 0.1)
     g.add(this.head)
     const h = this.head
     part(h, sph, fur, [0, 0, 0], [0.29, 0.26, 0.26])
-    part(h, sph, cream, [0, -0.07, 0.19], [0.13, 0.09, 0.08])
+    part(h, sph, fur, [0, -0.07, 0.19], [0.13, 0.09, 0.08])
     part(h, sph, pink, [0, -0.03, 0.26], [0.03, 0.022, 0.02])
     for (const sx of [-1, 1]) {
-      part(h, sph, cream, [sx * 0.045, -0.08, 0.235], [0.05, 0.04, 0.035])
-      // eyes
+      const patch = sx < 0 ? black : orange
+      part(h, sph, patch, [sx * 0.11, 0.06, 0.03], [0.19, 0.2, 0.23])
+      part(h, sph, fur, [sx * 0.045, -0.08, 0.235], [0.05, 0.04, 0.035])
+      // amber eyes with a dark pupil and a highlight
       const e = new THREE.Group()
       e.position.set(sx * 0.11, 0.02, 0.215)
       h.add(e)
       part(e, sph, eye, [0, 0, 0], [0.052, 0.06, 0.03])
-      part(e, lowSph, white, [sx * -0.012 + 0.012, 0.022, 0.024], [0.017, 0.017, 0.01])
+      part(e, sph, pupil, [0, 0, 0.012], [0.032, 0.042, 0.025])
+      part(e, lowSph, white, [sx * -0.012 + 0.012, 0.022, 0.03], [0.017, 0.017, 0.01])
       this.eyes.push(e)
-      // head stripes
-      part(h, sph, stripe, [sx * 0.07, 0.2, 0.08], [0.025, 0.06, 0.07], [0.5, 0, sx * 0.25])
-      part(h, sph, stripe, [sx * 0.25, 0.0, 0.05], [0.04, 0.025, 0.07])
-      // ears
+      // ears in the colour of their side, pink inside
       const ear = new THREE.Group()
       ear.position.set(sx * 0.16, 0.18, 0.0)
       ear.rotation.z = -sx * 0.32
       h.add(ear)
-      part(ear, cone, fur, [0, 0.08, 0], [0.11, 0.2, 0.07])
+      part(ear, cone, patch, [0, 0.08, 0], [0.11, 0.2, 0.07])
       part(ear, cone, pink, [0, 0.07, 0.03], [0.07, 0.14, 0.035])
       this.ears.push(ear)
     }
-    part(h, sph, stripe, [0, 0.22, 0.03], [0.03, 0.05, 0.08], [0.4, 0, 0])
     this.object.traverse((o) => {
       const m = o as THREE.Mesh
       if (m.isMesh) m.receiveShadow = true
@@ -697,6 +704,9 @@ class PrimitiveCat extends Cat3D {
 // 1. GLB scan
 // ---------------------------------------------------------------------------
 
+/** Height of the GLB scan in tiles (feet to ear tips). */
+const GLB_HEIGHT = 0.85
+
 class GlbCat extends Cat3D {
   readonly kind = 'glb' as const
   private readonly mixer: THREE.AnimationMixer | null = null
@@ -706,15 +716,46 @@ class GlbCat extends Cat3D {
 
   constructor(scene: THREE.Object3D, clips: THREE.AnimationClip[]) {
     super()
-    this.baseHeight = 1.0
-    this.model = normalizeModel(scene, 1.0)
+    // Katrien's scan stands on four legs with a long tail: at one tile high she would be
+    // almost a tile and a half long, so she is a bit smaller than a tile.
+    this.baseHeight = GLB_HEIGHT
+    this.model = normalizeModel(scene, GLB_HEIGHT)
     this.poseGroup.add(this.model)
+    this.centreOnFeet()
     this.measureHead()
     if (clips.length) {
       this.mixer = new THREE.AnimationMixer(this.model)
       for (const clip of clips) this.actions.set(clip.name.toLowerCase(), this.mixer.clipAction(clip))
       this.play(['idle', 'stand', 'breath'])
     }
+  }
+
+  /**
+   * normalizeModel centres the bounding box, but the tail makes that box long at the back.
+   * Centre the paws on the tile instead, so she stands on it and the tail hangs behind.
+   */
+  private centreOnFeet(): void {
+    this.model.updateMatrixWorld(true)
+    const v = new THREE.Vector3()
+    const feet = new THREE.Vector3()
+    let n = 0
+    this.model.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      const pos = m.geometry.getAttribute('position')
+      const step = Math.max(1, Math.floor(pos.count / 6000))
+      for (let i = 0; i < pos.count; i += step) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld)
+        if (v.y < GLB_HEIGHT * 0.08) {
+          feet.add(v)
+          n++
+        }
+      }
+    })
+    if (!n) return
+    feet.multiplyScalar(1 / n)
+    this.model.position.x -= feet.x
+    this.model.position.z -= feet.z
   }
 
   /** Finds the top of the head between the ears from the mesh itself. */
@@ -744,7 +785,8 @@ class GlbCat extends Cat3D {
       minX = Math.min(minX, p.x)
       maxX = Math.max(maxX, p.x)
     }
-    this.headTop.set(c.x, maxY * 0.9, c.z)
+    // Katrien's ears are small: the skull top sits just below the ear tips.
+    this.headTop.set(c.x, maxY * 0.93, c.z)
     this.headWidth = Math.max(0.25, Math.min(0.6, (maxX - minX) * 0.9))
   }
 

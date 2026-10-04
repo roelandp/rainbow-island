@@ -1,8 +1,8 @@
 import type { App, Screen } from '../app'
-import { CAPES, HATS, PATTERNS, lockedText, unlocked, type Look, type Unlock } from '../content/looks'
+import { CAPES, HATS, lockedText, unlocked, type Look, type Unlock } from '../content/looks'
 import { el } from './dom'
 
-/** Dress Katrien up with what he earned: hats, a cape and a fur pattern. */
+/** Dress Katrien up with what she earned: hats and other things for her head, and a cape. */
 export function aankledenScreen(app: App): Screen {
   const root = el('div.screen.solid')
   const top = el('div.topbar', {}, el('button.btn.small', { onclick: () => app.go('menu') }, '← Klaar'), el('h1', { text: 'Aankleden' }))
@@ -11,7 +11,7 @@ export function aankledenScreen(app: App): Screen {
   app.holdScene(true)
 
   const progress = app.lookProgress()
-  let look: Look = { ...app.store.profile.look, hats: [...app.store.profile.look.hats] }
+  let look: Look = { ...app.store.profile.look, hats: [...app.store.profile.look.hats], pattern: null }
 
   function save(): void {
     app.store.update((p) => {
@@ -36,7 +36,7 @@ export function aankledenScreen(app: App): Screen {
     const url = app.dresser.dataUrl('beg')
     if (url) preview.src = url
     const panels: (HTMLElement | null)[] = [
-      el('div.card.panel', {}, el('h2', { text: 'Hoedjes en meer' }), el('p.tiny', { text: 'Je mag er meer tegelijk kiezen.' }), el('div.dress-row', {}, ...HATS.map((h) =>
+      el('div.card.panel', {}, el('h2', { text: 'Voor op haar kop' }), el('p.tiny', { text: 'Je mag er meer kiezen.' }), el('div.dress-row', {}, ...HATS.map((h) =>
         chip(h.naam, look.hats.includes(h.id), h.unlock, () => {
           look = { ...look, hats: look.hats.includes(h.id) ? look.hats.filter((x) => x !== h.id) : [...look.hats, h.id] }
           save()
@@ -50,18 +50,6 @@ export function aankledenScreen(app: App): Screen {
         ...CAPES.map((c) =>
           chip(c.naam, look.cape === c.id, c.unlock, () => {
             look = { ...look, cape: c.id }
-            save()
-          }),
-        ),
-      )),
-      app.is3d ? null : el('div.card.panel', {}, el('h2', { text: 'Vachtje' }), el('div.dress-row', {},
-        chip('Gewoon', look.pattern === null, { kind: 'rounds', at: 0 }, () => {
-          look = { ...look, pattern: null }
-          save()
-        }),
-        ...PATTERNS.map((pt) =>
-          chip(pt.naam, look.pattern === pt.id, pt.unlock, () => {
-            look = { ...look, pattern: pt.id }
             save()
           }),
         ),

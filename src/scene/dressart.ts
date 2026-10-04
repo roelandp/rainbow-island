@@ -281,4 +281,224 @@ const ketting: HatPainter = (ctx, w) => {
   ctx.fill();
 }
 
-export const DRAWN_HATS: Record<string, HatPainter> = { hogehoed, zonnebril, lama, ketting }
+const RAINBOW = ['#ff8fa3', '#ffb36b', '#ffe27a', '#8fe3a1', '#8fc8ff', '#c3a2ff']
+
+function heartPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+  ctx.beginPath()
+  ctx.moveTo(cx, cy + r * 0.9)
+  ctx.bezierCurveTo(cx - r * 1.5, cy - r * 0.1, cx - r * 0.9, cy - r * 1.3, cx, cy - r * 0.5)
+  ctx.bezierCurveTo(cx + r * 0.9, cy - r * 1.3, cx + r * 1.5, cy - r * 0.1, cx, cy + r * 0.9)
+  ctx.closePath()
+}
+
+function starPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+  ctx.beginPath()
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5
+    const rr = i % 2 ? r * 0.45 : r
+    ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)
+  }
+  ctx.closePath()
+}
+
+function flower(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, petal: string): void {
+  ctx.fillStyle = petal
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5
+    ctx.beginPath()
+    ctx.arc(x + Math.cos(a) * r * 0.55, y + Math.sin(a) * r * 0.55, r * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = '#ffd95a'
+  ctx.beginPath()
+  ctx.arc(x, y, r * 0.32, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+/** A small princess tiara: a silver band with three points and pink gems. */
+const tiara: HatPainter = (ctx, w) => {
+  const grad = ctx.createLinearGradient(0, -w * 0.5, 0, w * 0.05)
+  grad.addColorStop(0, '#ffffff')
+  grad.addColorStop(1, '#c9c3dc')
+  ctx.fillStyle = grad
+  ctx.strokeStyle = '#a79fc4'
+  ctx.lineWidth = w * 0.02
+  ctx.beginPath()
+  ctx.moveTo(-w * 0.5, w * 0.04)
+  ctx.lineTo(-w * 0.42, -w * 0.18)
+  ctx.lineTo(-w * 0.24, -w * 0.12)
+  ctx.lineTo(0, -w * 0.46)
+  ctx.lineTo(w * 0.24, -w * 0.12)
+  ctx.lineTo(w * 0.42, -w * 0.18)
+  ctx.lineTo(w * 0.5, w * 0.04)
+  ctx.quadraticCurveTo(0, -w * 0.06, -w * 0.5, w * 0.04)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  for (const [x, y, r, c] of [[0, -w * 0.2, w * 0.075, '#ff6fa8'], [-w * 0.3, -w * 0.04, w * 0.045, '#b98cff'], [w * 0.3, -w * 0.04, w * 0.045, '#7fd3ff']] as const) {
+    ctx.fillStyle = c
+    heartPath(ctx, x, y, r)
+    ctx.fill()
+  }
+  ctx.fillStyle = '#ffffff'
+  for (const x of [-w * 0.42, 0, w * 0.42]) {
+    ctx.beginPath()
+    ctx.arc(x, x === 0 ? -w * 0.46 : -w * 0.18, w * 0.035, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/** A rainbow unicorn horn standing on the forehead. */
+const eenhoorn: HatPainter = (ctx, w) => {
+  const base = w * 0.5
+  const tip = -w * 1.3
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(-base / 2, 0)
+  ctx.quadraticCurveTo(-base * 0.3, tip * 0.5, 0, tip)
+  ctx.quadraticCurveTo(base * 0.3, tip * 0.5, base / 2, 0)
+  ctx.quadraticCurveTo(0, w * 0.08, -base / 2, 0)
+  ctx.closePath()
+  const grad = ctx.createLinearGradient(0, 0, 0, tip)
+  RAINBOW.forEach((c, i) => grad.addColorStop(i / (RAINBOW.length - 1), c))
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.clip()
+  // the spiral: soft diagonal bands
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'
+  ctx.lineWidth = w * 0.045
+  for (let i = 0; i < 6; i++) {
+    const y = -w * 0.08 - i * w * 0.2
+    ctx.beginPath()
+    ctx.moveTo(-base * 0.6, y + w * 0.05)
+    ctx.lineTo(base * 0.6, y - w * 0.07)
+    ctx.stroke()
+  }
+  ctx.restore()
+  ctx.fillStyle = '#fff6a8'
+  starPath(ctx, base * 0.55, tip * 0.7, w * 0.08)
+  ctx.fill()
+  starPath(ctx, -base * 0.6, tip * 0.35, w * 0.05)
+  ctx.fill()
+}
+
+/** A ring of pastel flowers across the top of the head. */
+const bloemenkrans: HatPainter = (ctx, w) => {
+  const colors = ['#ffb3d1', '#d8b8ff', '#fff1a8', '#a8e6ff', '#ffc3a0', '#ffb3d1', '#d8b8ff']
+  const n = colors.length
+  ctx.strokeStyle = '#6cc27a'
+  ctx.lineWidth = w * 0.04
+  ctx.beginPath()
+  for (let i = 0; i <= 20; i++) {
+    const t = i / 20
+    const x = (t - 0.5) * w
+    const y = -Math.sin(t * Math.PI) * w * 0.14 + w * 0.06
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.stroke()
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1)
+    const x = (t - 0.5) * w * 0.94
+    const y = -Math.sin(t * Math.PI) * w * 0.14 + w * 0.06
+    ctx.fillStyle = '#7bd08a'
+    ctx.beginPath()
+    ctx.ellipse(x + w * 0.05, y + w * 0.03, w * 0.05, w * 0.022, 0.5, 0, Math.PI * 2)
+    ctx.fill()
+    flower(ctx, x, y, w * (i % 2 ? 0.07 : 0.085), colors[i])
+  }
+}
+
+/** Pink glasses with heart-shaped lenses, centred between the eyes. */
+const hartjesbril: HatPainter = (ctx, w) => {
+  const r = w * 0.2
+  ctx.strokeStyle = '#ff5c9d'
+  ctx.lineWidth = w * 0.04
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(-w * 0.1, -r * 0.2)
+  ctx.quadraticCurveTo(0, -r * 0.5, w * 0.1, -r * 0.2)
+  ctx.moveTo(-w * 0.48, -r * 0.4)
+  ctx.lineTo(-w * 0.62, -r * 0.1)
+  ctx.moveTo(w * 0.48, -r * 0.4)
+  ctx.lineTo(w * 0.62, -r * 0.1)
+  ctx.stroke()
+  for (const side of [-1, 1]) {
+    const cx = side * w * 0.28
+    heartPath(ctx, cx, 0, r)
+    ctx.fillStyle = 'rgba(255, 143, 190, 0.78)'
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'
+    ctx.beginPath()
+    ctx.ellipse(cx - r * 0.4, -r * 0.3, r * 0.14, r * 0.24, -0.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/** A bow in rainbow stripes, worn on the side of the head. */
+const regenboogstrik: HatPainter = (ctx, w) => {
+  const lobe = (side: number) => {
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(0, -w * 0.18)
+    ctx.quadraticCurveTo(side * w * 0.5, -w * 0.5, side * w * 0.5, -w * 0.18)
+    ctx.quadraticCurveTo(side * w * 0.5, w * 0.14, 0, -w * 0.18)
+    ctx.closePath()
+    ctx.clip()
+    const band = (w * 0.66) / RAINBOW.length
+    RAINBOW.forEach((c, i) => {
+      ctx.fillStyle = c
+      ctx.fillRect(-w * 0.6, -w * 0.52 + i * band, w * 1.2, band + 1)
+    })
+    ctx.restore()
+  }
+  lobe(-1)
+  lobe(1)
+  ctx.fillStyle = '#ff8fc4'
+  ctx.beginPath()
+  ctx.ellipse(0, -w * 0.18, w * 0.1, w * 0.12, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+  ctx.beginPath()
+  ctx.ellipse(-w * 0.03, -w * 0.22, w * 0.03, w * 0.04, 0, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+/** A hair clip with three glittery stars. */
+const sterrenspeld: HatPainter = (ctx, w) => {
+  ctx.strokeStyle = '#e7c35a'
+  ctx.lineWidth = w * 0.06
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(-w * 0.42, -w * 0.05)
+  ctx.lineTo(w * 0.42, -w * 0.22)
+  ctx.stroke()
+  const stars: [number, number, number, string][] = [
+    [-w * 0.3, -w * 0.12, w * 0.2, '#ffe066'],
+    [w * 0.02, -w * 0.25, w * 0.24, '#ff9ccc'],
+    [w * 0.33, -w * 0.24, w * 0.18, '#a9d8ff'],
+  ]
+  for (const [x, y, r, c] of stars) {
+    ctx.fillStyle = c
+    starPath(ctx, x, y, r)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'
+    ctx.beginPath()
+    ctx.arc(x - r * 0.15, y - r * 0.2, r * 0.13, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+export const DRAWN_HATS: Record<string, HatPainter> = {
+  hogehoed,
+  zonnebril,
+  lama,
+  ketting,
+  tiara,
+  eenhoorn,
+  bloemenkrans,
+  hartjesbril,
+  regenboogstrik,
+  sterrenspeld,
+}

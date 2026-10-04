@@ -1,10 +1,13 @@
 import { EMPTY_LOOK, capeById, hatById, type Look } from '../content/looks'
+import { ACCESSORY_ANCHOR_Y, ACCESSORY_ASPECT, ACCESSORY_HEAD_W } from './cat'
 import { DRAWN_HATS, paintCape, paintPattern } from './dressart'
 
 /**
- * Where the head sits in each sprite, measured on the delivered art (taken
- * over from Katrien Klimt). `head` is the top of the skull between the ears,
- * `face` sits between the eyes, both as fractions of the sprite.
+ * Where the head sits in each sprite, measured on Katja's art from Rainbow
+ * Kitten. `head` is the top of the skull between the ears, `face` sits between
+ * the eyes, `neck` is where a cape is tied (none when she is curled up), all as
+ * fractions of the sprite. `headW` is the skull width as a fraction of the
+ * sprite width, rotations are the head tilt in degrees.
  */
 interface Anchor {
   headW: number
@@ -12,6 +15,7 @@ interface Anchor {
   head: { x: number; y: number }
   face: { x: number; y: number }
   faceRot: number
+  neck?: { x: number; y: number; rot: number }
 }
 
 interface SpriteDef {
@@ -22,19 +26,27 @@ interface SpriteDef {
 }
 
 const SPRITES: Record<string, SpriteDef> = {
-  beg: { file: 'sprites/beg.webp', w: 473, h: 768, anchor: { headW: 0.58, rot: 13, head: { x: 0.51, y: 0.065 }, face: { x: 0.393, y: 0.163 }, faceRot: 12 } },
-  jump: { file: 'sprites/jump.webp', w: 550, h: 768, anchor: { headW: 0.52, rot: 8, head: { x: 0.55, y: 0.05 }, face: { x: 0.416, y: 0.157 }, faceRot: 8 } },
-  sleep: { file: 'sprites/sleep.webp', w: 598, h: 768, anchor: { headW: 0.5, rot: -38, head: { x: 0.43, y: 0.055 }, face: { x: 0.4, y: 0.335 }, faceRot: -43 } },
+  beg: { file: 'sprites/beg.webp', w: 460, h: 768, anchor: { headW: 0.72, rot: 0, head: { x: 0.52, y: 0.05 }, face: { x: 0.535, y: 0.29 }, faceRot: 0, neck: { x: 0.5, y: 0.45, rot: 0 } } },
+  jump: { file: 'sprites/jump.webp', w: 456, h: 768, anchor: { headW: 0.5, rot: 20, head: { x: 0.5, y: 0.07 }, face: { x: 0.435, y: 0.165 }, faceRot: 16, neck: { x: 0.6, y: 0.275, rot: 15 } } },
+  sleep: { file: 'sprites/sleep.webp', w: 782, h: 768, anchor: { headW: 0.52, rot: -22, head: { x: 0.27, y: 0.27 }, face: { x: 0.36, y: 0.545 }, faceRot: -22 } },
+  confetti: { file: 'sprites/confetti.webp', w: 534, h: 768, anchor: { headW: 0.58, rot: 18, head: { x: 0.54, y: 0.15 }, face: { x: 0.47, y: 0.285 }, faceRot: 18, neck: { x: 0.53, y: 0.43, rot: 10 } } },
 }
 
-/** Island poses onto sprites: the pole poses of Klimt are not used here. */
+/**
+ * Island poses onto sprites. Katja's hang, happy and surprised art leans against a
+ * wall, so happy uses the confetti art and surprised the beg art. Keep in sync with
+ * POSE_SPRITE in cat.ts.
+ */
 export const POSE_SPRITE: Record<string, string> = {
   idle: 'beg',
   surprised: 'beg',
-  happy: 'jump',
+  happy: 'confetti',
   jump: 'jump',
   sleep: 'sleep',
 }
+
+/** Rainbow Kitten's cape art: the knot sits at this fraction of the picture. */
+const CAPE_PIVOT = { x: 0.08, y: 0.12 }
 
 /** Transparent margin around the sprite, so a tall hat is never clipped. */
 const PAD_TOP = 0.36
@@ -57,7 +69,7 @@ interface Entry extends Dressed {
 }
 
 /**
- * Composes Katrien with hats, cape and fur pattern into one canvas per
+ * Composes Katrien with hats and a cape into one canvas per
  * sprite. The scene turns that canvas into a texture, the dress-up screen into
  * an image, so both show the same outfit.
  */
@@ -91,7 +103,7 @@ export class CatDresser {
     return () => this.listeners.delete(fn)
   }
 
-  /** The composed canvas for a sprite name (beg, jump, sleep), or null while it loads. */
+  /** The composed canvas for a sprite name (beg, jump, sleep, confetti), or null while it loads. */
   dressed(sprite: string): Dressed | null {
     const entry = this.entry(sprite)
     if (!entry || !entry.base) return null
@@ -100,24 +112,25 @@ export class CatDresser {
   }
 
   /**
-   * Only the hats and accessories, laid out around a virtual head (top of the
-   * head at (0.5, 0.6) of the canvas, head half the canvas wide), for 3D avatars.
+   * Only the hats and accessories, laid out around a virtual head (see ACCESSORY_*
+   * in cat.ts), for 3D avatars. Capes never go on the 3D model.
    */
   accessoryCanvas(): HTMLCanvasElement | null {
     if (this.current.hats.length === 0) return null
-    const size = 512
+    // Taller than wide, so a bow tie under the chin still fits.
+    const width = 512
     const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
+    canvas.width = width
+    canvas.height = Math.round(width * ACCESSORY_ASPECT)
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
-    const headW = size * 0.5
+    const headW = width * ACCESSORY_HEAD_W
     for (const id of this.current.hats) {
       const hat = hatById(id)
       if (!hat) continue
       ctx.save()
       // The face sits a third of a head below the top of the head.
-      ctx.translate(size / 2, size * 0.6 + (hat.mount === 'face' ? headW * 0.42 : 0))
+      ctx.translate(width / 2, canvas.height * ACCESSORY_ANCHOR_Y + (hat.mount === 'face' ? headW * 0.42 : 0))
       ctx.rotate((hat.rot * Math.PI) / 180)
       ctx.translate(hat.dx * headW, hat.dy * headW)
       const w = headW * hat.scale
@@ -206,11 +219,22 @@ export class CatDresser {
 
   private applyCape(ctx: CanvasRenderingContext2D, entry: Entry, capeId: string): void {
     const capeDef = capeById(capeId)
-    if (!capeDef) return
-    const a = entry.def.anchor
+    const neck = entry.def.anchor.neck
+    if (!capeDef || !neck) return
+    const { w: sw, h: sh, anchor } = entry.def
     ctx.save()
-    ctx.translate(entry.padX + a.head.x * entry.def.w, entry.padY + a.head.y * entry.def.h)
-    paintCape(ctx, capeDef.color, entry.def.w)
+    ctx.translate(entry.padX + neck.x * sw, entry.padY + neck.y * sh)
+    ctx.rotate((neck.rot * Math.PI) / 180)
+    if (capeDef.item) {
+      const img = this.hatImage(capeDef.item)
+      if (img) {
+        const cw = anchor.headW * sw * 1.3
+        const ch = (cw * img.naturalHeight) / img.naturalWidth
+        ctx.drawImage(img, -CAPE_PIVOT.x * cw, -CAPE_PIVOT.y * ch, cw, ch)
+      }
+    } else {
+      paintCape(ctx, capeDef.color, sw)
+    }
     ctx.restore()
   }
 
