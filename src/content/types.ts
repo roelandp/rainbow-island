@@ -17,6 +17,8 @@ export interface ToetsFile {
   theme?: string
   /** "nl" (default) or "en". */
   language?: string
+  /** Test date unknown but close: pace as if the test is a week away (many new words, short waits). */
+  soon?: boolean
   questions: Question[]
 }
 

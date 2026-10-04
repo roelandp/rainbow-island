@@ -36,6 +36,8 @@ export interface EngineOptions {
 }
 
 const DEFAULT_MIX = { due: 0.6, fresh: 0.25, known: 0.15 }
+/** Rolling distance to the test for lists marked `soon` without a date. */
+const SOON_MS = 7 * 86_400_000
 
 /**
  * Picks the next word and question type, and keeps the learning state of one
@@ -84,7 +86,8 @@ export class WordEngine {
 
   /** Milliseconds until the start of the test day, null without a date or once it passed. */
   msToTest(): number | null {
-    if (!this.toets.date) return null
+    // Date unknown but close: a rolling week, so new words come fast and waits are short.
+    if (!this.toets.date) return this.toets.soon ? SOON_MS : null
     const ms = new Date(`${this.toets.date}T08:30:00`).getTime() - this.now()
     return ms > 0 ? ms : null
   }

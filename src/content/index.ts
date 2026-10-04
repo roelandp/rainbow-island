@@ -40,7 +40,7 @@ export function parseToetsen(raw: Record<string, Record<string, ToetsFile>>): To
       seen.add(id)
       const date = typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : undefined
       const title = typeof t.title === 'string' && t.title.trim() ? t.title.trim() : id
-      out.push({ id, title, date, theme: t.theme, language: langOf(t.language), questions })
+      out.push({ id, title, date, theme: t.theme, language: langOf(t.language), soon: t.soon === true && !date, questions })
     }
   }
   // Newest first; undated tests last, in file order (stable sort).

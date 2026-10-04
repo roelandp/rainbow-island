@@ -227,3 +227,15 @@ describe('the real English list', () => {
     }
   })
 })
+
+describe('soon: undated test that is close', () => {
+  it('paces as if the test is a rolling week away', () => {
+    const soon = parseToetsen({ f: { s: { title: 'S', date: null, soon: true, language: 'en', questions: fixture } } } as never)[0]
+    expect(soon.soon).toBe(true)
+    expect(new WordEngine({ toets: soon, seed: 1, now: () => 0 }).msToTest()).toBe(7 * DAY)
+    expect(new WordEngine({ toets, seed: 1, now: () => 0 }).msToTest()).toBeNull()
+  })
+  it('the real list is marked soon', () => {
+    expect(TOETSEN.find((t) => t.id === 'engels_familie')?.soon).toBe(true)
+  })
+})
