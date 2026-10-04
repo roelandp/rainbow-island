@@ -26,19 +26,19 @@ export function menuScreen(app: App): Screen {
   const top = el(
     'div.menu-top',
     {},
-    el('h1.title', { html: 'Katrien<small>EILAND</small>' }),
+    el('h1.title', { html: 'Rainbow<small>ISLAND</small>' }),
     el(
       'div.menu-stats',
       {},
       el('span.chip', {}, paws(app), p.days.played > 0 ? ` dag ${p.days.played + (roundsToday(p.days, now) > 0 ? 0 : 1)}` : ''),
-      el('span.chip', { text: `⭐ ${learned} van ${total} geleerd` }),
+      el('span.chip', { text: `⭐ ${learned} van ${total} woorden geleerd` }),
       inventoryChip(p.inventory),
     ),
   )
 
   const lines: HTMLElement[] = []
   if (asleep) {
-    lines.push(el('p.note', { html: '<strong>Katrien slaapt.</strong> Tik op het eiland om hem wakker te maken.' }))
+    lines.push(el('p.note', { html: '<strong>Katrien slaapt.</strong> Tik op het eiland om haar wakker te maken.' }))
   } else if (tired) {
     lines.push(el('p.note', { html: '<strong>Katrien is moe en tevreden. Morgen weer!</strong> Nog een rondje mag ook.' }))
   }

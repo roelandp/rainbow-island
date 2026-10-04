@@ -85,7 +85,7 @@ export function instellingenScreen(app: App): Screen {
   const speakRow = el(
     'div.setting',
     {},
-    el('label', {}, 'Voorlezen', el('small', { style: { display: 'block', color: 'var(--ink-dim)', fontWeight: '700' }, text: 'Leest het goede woord voor als het nog niet lukte' })),
+    el('label', {}, 'Voorlezen', el('small', { style: { display: 'block', color: 'var(--ink-dim)', fontWeight: '700' }, text: 'Leest het Engels hardop voor' })),
     toggle(p.settings.speak, (v) => {
       app.store.update((pp) => {
         pp.settings.speak = v

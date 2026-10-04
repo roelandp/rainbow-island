@@ -12,7 +12,7 @@ export function tapOnCat(app: App, clientX: number, clientY: number): boolean {
 }
 
 /**
- * Tap Katrien, then tap a tile: he walks there. Returns a tap handler that
+ * Tap Katrien, then tap a tile: she walks there. Returns a tap handler that
  * says whether it used the tap, and a cleanup function.
  */
 export function catMover(app: App, parent: HTMLElement): { tap: (x: number, y: number) => boolean; readonly selected: boolean; dispose: () => void } {

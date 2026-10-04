@@ -38,7 +38,7 @@ export function goalDone(days: Days, now: number): boolean {
   return roundsToday(days, now) >= ROUNDS_PER_DAY
 }
 
-/** Katrien sleeps in his basket when the last round is more than 20 hours ago. */
+/** Katrien sleeps in her basket when the last round is more than 20 hours ago. */
 export function isAsleep(days: Days, now: number): boolean {
   return days.lastAt > 0 && now - days.lastAt > SLEEP_AFTER_MS
 }

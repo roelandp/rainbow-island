@@ -3,8 +3,8 @@ import { findItem } from '../game/build'
 import { goalDone } from '../game/day'
 
 /**
- * Katrien wanders over the island on his own: to a random tile, now and then
- * to his scratching post or food bowl, and when he is tired, into his basket.
+ * Katrien wanders over the island on her own: to a random tile, now and then
+ * to her scratching post or food bowl, and when she is tired, into her basket.
  * Returns a stop function.
  */
 export function startRoaming(app: App, opts: { tiredSleep?: boolean } = {}): () => void {

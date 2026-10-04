@@ -1,0 +1,296 @@
+{
+  "engels_familie": {
+    "title": "Engels: familie",
+    "date": null,
+    "theme": "woordjes",
+    "language": "en",
+    "questions": [
+      {
+        "word": "family",
+        "definition": "familie",
+        "hint": "Begint met 'fam...'",
+        "sentence": "My mum, dad and brother are my ___."
+      },
+      {
+        "word": "family tree",
+        "definition": "stamboom",
+        "hint": "Begint met 'fam...', twee woorden",
+        "sentence": "This is my ___. I can see all my family in it."
+      },
+      {
+        "word": "brother",
+        "definition": "broer",
+        "hint": "Begint met 'bro...'",
+        "sentence": "My ___ is a boy. He is eight years old."
+      },
+      {
+        "word": "sister",
+        "definition": "zus",
+        "hint": "Begint met 'sis...'",
+        "sentence": "My ___ is a girl. She is nine years old."
+      },
+      {
+        "word": "mum / mother",
+        "definition": "moeder",
+        "hint": "Begint met 'mu...' of 'mo...'",
+        "sentence": "My ___ is my dad's wife."
+      },
+      {
+        "word": "dad / father",
+        "definition": "vader",
+        "hint": "Begint met 'da...' of 'fa...'",
+        "sentence": "My ___ is my mum's husband."
+      },
+      {
+        "word": "wife",
+        "definition": "vrouw / echtgenote",
+        "hint": "Begint met 'wi...'",
+        "sentence": "My mum is my dad's ___."
+      },
+      {
+        "word": "husband",
+        "definition": "man / echtgenoot",
+        "hint": "Begint met 'hus...'",
+        "sentence": "My dad is my mum's ___."
+      },
+      {
+        "word": "son",
+        "definition": "zoon",
+        "hint": "Begint met 'so...'",
+        "sentence": "My brother is my mum's ___."
+      },
+      {
+        "word": "daughter",
+        "definition": "dochter",
+        "hint": "Begint met 'dau...'",
+        "sentence": "My sister is my dad's ___."
+      },
+      {
+        "word": "aunt",
+        "definition": "tante",
+        "hint": "Begint met 'au...'",
+        "sentence": "My mum's sister is my ___."
+      },
+      {
+        "word": "uncle",
+        "definition": "oom",
+        "hint": "Begint met 'un...'",
+        "sentence": "My dad's brother is my ___."
+      },
+      {
+        "word": "cousin",
+        "definition": "neef / nicht",
+        "hint": "Begint met 'cou...'",
+        "sentence": "My aunt's son is my ___."
+      },
+      {
+        "word": "grandma / grandmother",
+        "definition": "oma / grootmoeder",
+        "hint": "Begint met 'grandm...'",
+        "sentence": "My mum's mother is my ___."
+      },
+      {
+        "word": "grandpa / grandfather",
+        "definition": "opa / grootvader",
+        "hint": "Begint met 'grandp...'",
+        "sentence": "My dad's father is my ___."
+      },
+      {
+        "word": "parents",
+        "definition": "ouders",
+        "hint": "Begint met 'par...'",
+        "sentence": "My mum and dad are my ___."
+      },
+      {
+        "word": "children",
+        "definition": "kinderen",
+        "hint": "Begint met 'chi...'",
+        "sentence": "My mum and dad have three ___."
+      },
+      {
+        "word": "people",
+        "definition": "mensen",
+        "hint": "Begint met 'peo...'",
+        "sentence": "There are a lot of ___ in the swimming pool."
+      },
+      {
+        "word": "young",
+        "definition": "jong",
+        "hint": "Begint met 'yo...'",
+        "sentence": "My sister is two years old. She is very ___."
+      },
+      {
+        "word": "tall",
+        "definition": "lang",
+        "hint": "Begint met 'ta...'",
+        "sentence": "My uncle is very ___. He is as big as a door."
+      },
+      {
+        "word": "short hair",
+        "definition": "kort haar",
+        "hint": "Begint met 'sho...', twee woorden",
+        "sentence": "My sister has long hair, but I have ___."
+      },
+      {
+        "word": "teacher",
+        "definition": "leerkracht",
+        "hint": "Begint met 'tea...'",
+        "sentence": "My ___ works at school."
+      },
+      {
+        "word": "job",
+        "definition": "baan / werk",
+        "hint": "Begint met 'jo...'",
+        "sentence": "My mum is a teacher. That is her ___."
+      },
+      {
+        "word": "swimming pool",
+        "definition": "zwembad",
+        "hint": "Begint met 'swi...', twee woorden",
+        "sentence": "I can swim in the ___."
+      },
+      {
+        "word": "school",
+        "definition": "school",
+        "hint": "Begint met 'sch...'",
+        "sentence": "I go to ___ and I see my teacher."
+      },
+      {
+        "word": "skate",
+        "definition": "skateboarden",
+        "hint": "Begint met 'ska...'",
+        "sentence": "I ___ on my skateboard."
+      },
+      {
+        "word": "read",
+        "definition": "lezen",
+        "hint": "Begint met 're...'",
+        "sentence": "I ___ a book in bed."
+      },
+      {
+        "word": "book",
+        "definition": "boek",
+        "hint": "Begint met 'bo...'",
+        "sentence": "Open your ___ and read the story."
+      },
+      {
+        "word": "magazine",
+        "definition": "tijdschrift",
+        "hint": "Begint met 'mag...'",
+        "sentence": "Mum reads a ___ with lots of pictures."
+      },
+      {
+        "word": "watch TV",
+        "definition": "tv kijken",
+        "hint": "Begint met 'wa...', twee woorden",
+        "sentence": "We sit on the sofa and ___."
+      },
+      {
+        "word": "play",
+        "definition": "spelen",
+        "hint": "Begint met 'pl...'",
+        "sentence": "We often ___ together in the garden."
+      },
+      {
+        "word": "together",
+        "definition": "samen",
+        "hint": "Begint met 'to...'",
+        "sentence": "My brother and I play ___."
+      },
+      {
+        "word": "often",
+        "definition": "vaak",
+        "hint": "Begint met 'of...'",
+        "sentence": "We ___ play together."
+      },
+      {
+        "word": "This is my family.",
+        "definition": "Dit is mijn familie."
+      },
+      {
+        "word": "This is my family tree.",
+        "definition": "Dit is mijn stamboom."
+      },
+      {
+        "word": "This is my brother.",
+        "definition": "Dit is mijn broer."
+      },
+      {
+        "word": "This is my sister.",
+        "definition": "Dit is mijn zus."
+      },
+      {
+        "word": "This is my mum.",
+        "definition": "Dit is mijn moeder."
+      },
+      {
+        "word": "This is my dad.",
+        "definition": "Dit is mijn vader."
+      },
+      {
+        "word": "His name is …",
+        "definition": "Zijn naam is …"
+      },
+      {
+        "word": "Her name is …",
+        "definition": "Haar naam is …"
+      },
+      {
+        "word": "He is eight years old.",
+        "definition": "Hij is acht jaar oud."
+      },
+      {
+        "word": "She is nine years old.",
+        "definition": "Zij is negen jaar oud."
+      },
+      {
+        "word": "He is very tall.",
+        "definition": "Hij is erg lang."
+      },
+      {
+        "word": "She has short hair.",
+        "definition": "Zij heeft kort haar."
+      },
+      {
+        "word": "This is my aunt.",
+        "definition": "Dit is mijn tante."
+      },
+      {
+        "word": "This is my uncle.",
+        "definition": "Dit is mijn oom."
+      },
+      {
+        "word": "They are my cousins.",
+        "definition": "Zij zijn mijn neven/nichten."
+      },
+      {
+        "word": "She is a teacher.",
+        "definition": "Zij is een leerkracht."
+      },
+      {
+        "word": "He works in a swimming pool.",
+        "definition": "Hij werkt in een zwembad."
+      },
+      {
+        "word": "We often play together.",
+        "definition": "We spelen vaak samen."
+      },
+      {
+        "word": "I love my family.",
+        "definition": "Ik hou van mijn familie."
+      },
+      {
+        "word": "Who is this?",
+        "definition": "Wie is dit?"
+      },
+      {
+        "word": "Who is he?",
+        "definition": "Wie is hij?"
+      },
+      {
+        "word": "Who is she?",
+        "definition": "Wie is zij?"
+      }
+    ]
+  }
+}

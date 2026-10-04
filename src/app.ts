@@ -72,7 +72,7 @@ export class App {
   readonly sceneKind: string
   readonly root: HTMLElement
   readonly stage: HTMLElement
-  /** Composes Katrien with his outfit, for the scene and the dress-up screen. */
+  /** Composes Katrien with her outfit, for the scene and the dress-up screen. */
   readonly dresser: CatDresser
 
   private screens = new Map<ScreenId, ScreenFactory>()
@@ -83,7 +83,7 @@ export class App {
   private held = false
   /** The word the last round ended on, so the next round does not open with it. */
   lastWord: string | null = null
-  /** Katrien was sent somewhere by Wyne: no wandering off on his own until then. */
+  /** Katrien was sent somewhere by Wyne: no wandering off on her own until then. */
   catHoldUntil = 0
   /** Set when a new version is waiting; applied on the start screen, never mid-round. */
   private pendingUpdate: (() => void) | null = null

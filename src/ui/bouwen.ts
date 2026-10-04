@@ -20,7 +20,7 @@ type Tool = ItemId | 'gum'
 /**
  * Build mode: pick a block or piece of furniture in the bar, tap a tile to put
  * it on top. The eraser takes the top one off and gives it back. Swipe to turn
- * the island a quarter, pinch to zoom. Drag a fish treat onto Katrien to feed him.
+ * the island a quarter, pinch to zoom. Drag a fish treat onto Katrien to feed her.
  */
 export function bouwenScreen(app: App): Screen {
   let tool: Tool | null = null
@@ -92,11 +92,11 @@ export function bouwenScreen(app: App): Screen {
     if (owned.length === 0 && fish === 0) {
       hint.textContent = 'Je hebt nog geen blokken. Speel een ronde om blokken te verdienen!'
     } else if (!tool) {
-      hint.textContent = 'Kies een blok en tik op het eiland. Tik op een meubel om het te draaien, op Katrien om hem te verplaatsen.'
+      hint.textContent = 'Kies een blok en tik op het eiland. Tik op een meubel om het te draaien, op Katrien om haar te verplaatsen.'
     } else if (tool === 'gum') {
       hint.textContent = 'Tik op een blok om het weg te halen.'
     } else {
-      hint.textContent = `${itemInfo(tool)?.naam}: tik op het eiland om het neer te zetten. Katrien verplaatsen: tik op hem.`
+      hint.textContent = `${itemInfo(tool)?.naam}: tik op het eiland om het neer te zetten. Katrien verplaatsen: tik op haar.`
     }
   }
 
@@ -108,10 +108,10 @@ export function bouwenScreen(app: App): Screen {
 
   function tapAt(clientX: number, clientY: number): void {
     if (locked) return
-    // Katrien always comes first: tap him (whatever is selected), then tap where he should go.
+    // Katrien always comes first: tap her (whatever is selected), then tap where she should go.
     if ((mover.selected || tapOnCat(app, clientX, clientY)) && mover.tap(clientX, clientY)) return
     if (!tool) {
-      // No block chosen: tap Katrien, then a tile, and he walks there.
+      // No block chosen: tap Katrien, then a tile, and she walks there.
       // A tap on a piece of furniture turns it a quarter.
       if (mover.tap(clientX, clientY)) return
       const spot = app.scene.pick(clientX, clientY)
