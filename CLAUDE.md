@@ -85,3 +85,15 @@ Kiezen tilt een woord hooguit naar box 3; box 4 en hoger verdien je met typen. T
 ## Niet nu
 
 Profielkeuze tussen Viggo en Wyne in één app, sync, analytics, eigen woorden invoeren in de app.
+
+## Stand van zaken (4 oktober 2026)
+
+Live: https://roelandp.github.io/rainbow-island/ (Pages via Actions).
+
+- Eén toets `engels_familie` (33 woorden + 22 korte zinnen), toetsdatum do 8 oktober 2026 (van de woordenlijst, "8-10").
+- Alleen Engels naar Nederlands: Engelse vraag (voorgelezen), Nederlands antwoord. Eerst kiezen uit 4, daarna het Nederlands typen. Korte zinnen alleen kiezen.
+- Sprintstand voor Engelse lijsten vanaf 5 dagen voor de toets (`SPRINT_MS` in `engine/engine.ts`): 75-90% nieuwe woorden, typen na 1 goede keuze, één schone typ = geleerd, zinnen komen na 2 uur terug. `soon: true` zonder datum = rollende week.
+- Simulatie (`src/game/sim.test.ts`), stand woensdagavond: 2 rondes per dag 50/55 gezien en 6 geleerd, 3 per dag alles gezien en 28 geleerd, 4 per dag 45 geleerd.
+- Ollie de olifant is het zesde dier. Regenboog in de lucht (alleen als er genoeg lucht in beeld is), regenboog-meubels, meisjesachtige aankleed-items.
+- Controle: `node scripts/screenshots.mjs` (zie kop van het script), screenshots in `screenshots/` (gitignored).
+- Open: `wake.webp` heeft geen pose; in headless Chrome geeft GLTFLoader "Couldn't load texture blob" (op de iPad nalopen).
