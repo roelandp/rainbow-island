@@ -12,7 +12,22 @@ export interface PlacedProp {
   rot?: number
 }
 
-export const PROP_TYPES = ['mand', 'krabpaal', 'voerbak', 'lantaarn', 'bankje', 'boompje', 'hek', 'vuurtoren'] as const
+export const PROP_TYPES = [
+  'mand',
+  'krabpaal',
+  'voerbak',
+  'lantaarn',
+  'bankje',
+  'boompje',
+  'hek',
+  'vuurtoren',
+  'hartjeslamp',
+  'eenhoorn',
+  'hemelbed',
+  'regenboogboog',
+  'lollyboom',
+  'kasteeltoren',
+] as const
 
 /** Approximate heights, used for camera framing. */
 export const PROP_HEIGHT: Record<string, number> = {
@@ -24,6 +39,12 @@ export const PROP_HEIGHT: Record<string, number> = {
   boompje: 1.1,
   hek: 0.45,
   vuurtoren: 2.3,
+  hartjeslamp: 1.0,
+  eenhoorn: 1.0,
+  hemelbed: 1.15,
+  regenboogboog: 0.6,
+  lollyboom: 1.2,
+  kasteeltoren: 1.75,
 }
 
 const POP_DUR = 0.35
@@ -41,6 +62,10 @@ function mat(color: string): THREE.MeshLambertMaterial {
 
 /** Lamp glass: emissive, glow strength driven by mood. */
 const lampMat = new THREE.MeshLambertMaterial({ color: '#fff4c8', emissive: '#ffcf6e', emissiveIntensity: 0.6 })
+/** Heart lamp glass: soft pink glow. */
+const heartMat = new THREE.MeshLambertMaterial({ color: '#ffd3e6', emissive: '#ff8fc0', emissiveIntensity: 0.5 })
+/** Pastel rainbow bands, outside to inside. */
+const RAINBOW = ['#ffb3c1', '#ffd3a8', '#fff1a8', '#c4ecb8', '#b8dcfa', '#d6c4fa']
 
 let glowTex: THREE.CanvasTexture | null = null
 function getGlowTexture(): THREE.CanvasTexture {
@@ -241,6 +266,154 @@ function buildVuurtoren(g: THREE.Group): { glow: THREE.Sprite; beam: THREE.Objec
   return { glow: gl, beam }
 }
 
+function buildHartjeslamp(g: THREE.Group): THREE.Sprite {
+  const post = mat('#f4b6d2')
+  add(g, cyl(0.13, 0.15, 0.06, 12), post, 0, 0.03, 0)
+  add(g, cyl(0.03, 0.03, 0.56, 8), post, 0, 0.34, 0)
+  add(g, sphere(0.04, 8, 6), mat('#fff1a0'), 0, 0.63, 0)
+  // heart: two round lobes and a point, flattened front to back
+  const heart = new THREE.Group()
+  heart.position.y = 0.8
+  heart.scale.set(1, 1, 0.6)
+  g.add(heart)
+  add(heart, sphere(0.1, 12, 10), heartMat, -0.075, 0.04, 0)
+  add(heart, sphere(0.1, 12, 10), heartMat, 0.075, 0.04, 0)
+  const tip = add(heart, cyl(0.158, 0.0, 0.2, 4), heartMat, 0, -0.07, 0)
+  tip.rotation.y = Math.PI / 4
+  tip.scale.set(1, 1, 0.75)
+  return glow(g, 0.8, 1.0)
+}
+
+function buildEenhoorn(g: THREE.Group): void {
+  const white = mat('#fffaff')
+  const hoof = mat('#d6c4fa')
+  add(g, rbox(0.62, 0.12, 0.36, 0.05), mat('#d7c6f7'), 0, 0.06, 0)
+  // body and legs
+  const body = add(g, sphere(0.2, 14, 10), white, 0, 0.46, 0)
+  body.scale.set(1.35, 0.9, 0.85)
+  for (const [x, z] of [
+    [-0.16, -0.09],
+    [-0.16, 0.09],
+    [0.16, -0.09],
+    [0.16, 0.09],
+  ]) {
+    add(g, cyl(0.045, 0.045, 0.26, 8), white, x, 0.25, z)
+    add(g, cyl(0.05, 0.05, 0.05, 8), hoof, x, 0.145, z)
+  }
+  // neck, head, snout, ears
+  const neck = add(g, cyl(0.08, 0.1, 0.24, 10), white, 0.22, 0.62, 0)
+  neck.rotation.z = -0.5
+  add(g, sphere(0.12, 12, 10), white, 0.3, 0.77, 0)
+  const snout = add(g, sphere(0.08, 10, 8), mat('#ffe3ef'), 0.4, 0.73, 0)
+  snout.scale.set(1.1, 0.85, 0.9)
+  for (const z of [-0.06, 0.06]) add(g, cyl(0.0, 0.035, 0.08, 6), white, 0.26, 0.9, z)
+  for (const z of [-0.075, 0.075]) add(g, sphere(0.018, 6, 5), mat('#5a4a6a'), 0.37, 0.8, z, false)
+  // golden horn
+  const horn = add(g, cyl(0.0, 0.035, 0.2, 8), mat('#ffd76a'), 0.34, 0.95, 0)
+  horn.rotation.z = -0.35
+  // rainbow mane and tail
+  RAINBOW.forEach((c, i) => {
+    add(g, sphere(0.05, 8, 6), mat(c), 0.22 - i * 0.045, 0.86 - i * 0.055, 0, false)
+  })
+  RAINBOW.forEach((c, i) => {
+    if (i % 2) return
+    add(g, sphere(0.055, 8, 6), mat(c), -0.29 - i * 0.015, 0.5 - i * 0.05, 0, false)
+  })
+}
+
+function buildHemelbed(g: THREE.Group): void {
+  const frame = mat('#f4b6d2')
+  const canopy = mat('#d7c6f7')
+  add(g, rbox(0.62, 0.14, 0.86, 0.04), frame, 0, 0.12, 0)
+  add(g, rbox(0.56, 0.1, 0.8, 0.04), mat('#fffaf6'), 0, 0.23, 0)
+  add(g, rbox(0.58, 0.06, 0.5, 0.03), mat('#ffc4dc'), 0, 0.29, 0.13)
+  add(g, rbox(0.36, 0.08, 0.16, 0.04), mat('#ffffff'), 0, 0.31, -0.28)
+  add(g, rbox(0.62, 0.3, 0.06, 0.03), frame, 0, 0.3, -0.42)
+  for (const x of [-0.28, 0.28]) {
+    for (const z of [-0.4, 0.4]) {
+      add(g, cyl(0.025, 0.025, 1.0, 8), frame, x, 0.5, z)
+      add(g, sphere(0.04, 8, 6), mat('#fff1a0'), x, 1.02, z, false)
+    }
+  }
+  add(g, rbox(0.66, 0.05, 0.9, 0.02), canopy, 0, 0.98, 0)
+  // soft drapes at the corners
+  for (const x of [-0.29, 0.29]) {
+    for (const z of [-0.36, 0.36]) {
+      const d = add(g, cyl(0.03, 0.07, 0.42, 8), canopy, x, 0.76, z, false)
+      d.scale.set(1, 1, 0.5)
+    }
+  }
+  add(g, sphere(0.05, 8, 6), mat('#ff9ec0'), 0, 1.05, 0)
+}
+
+function buildRegenboogboog(g: THREE.Group): void {
+  RAINBOW.forEach((c, i) => {
+    const r = 0.38 - i * 0.05
+    const arc = new THREE.Mesh(geo(`rb-arc${i}`, () => new THREE.TorusGeometry(r, 0.028, 8, 28, Math.PI)), mat(c))
+    arc.position.y = 0.1
+    arc.castShadow = true
+    g.add(arc)
+  })
+  // a fluffy cloud at each foot
+  const cloud = mat('#ffffff')
+  for (const sx of [-1, 1]) {
+    const x = sx * 0.26
+    add(g, sphere(0.1, 10, 8), cloud, x, 0.09, 0)
+    add(g, sphere(0.075, 10, 8), cloud, x - 0.1, 0.06, 0.03)
+    add(g, sphere(0.075, 10, 8), cloud, x + 0.1, 0.06, -0.02)
+    add(g, sphere(0.06, 8, 6), cloud, x, 0.05, 0.1)
+  }
+}
+
+function buildLollyboom(g: THREE.Group): void {
+  // candy-striped trunk
+  for (let i = 0; i < 5; i++) add(g, cyl(0.06, 0.065, 0.09, 10), mat(i % 2 ? '#ffffff' : '#ff9ec0'), 0, 0.045 + i * 0.09, 0)
+  add(g, sphere(0.3, 14, 10), mat('#ffc4dc'), 0, 0.68, 0)
+  add(g, sphere(0.2, 12, 10), mat('#bfeedd'), 0.2, 0.8, 0.06)
+  add(g, sphere(0.19, 12, 10), mat('#d7c6f7'), -0.18, 0.78, -0.08)
+  add(g, sphere(0.16, 12, 10), mat('#fff1a0'), 0.02, 0.92, -0.04)
+  // sprinkles
+  const sprinkles = ['#ff8fb8', '#8fd0ee', '#ffd76a', '#a6dc8c', '#c9b3ff', '#ffb98a']
+  for (let i = 0; i < 10; i++) {
+    const a = i * 2.4
+    const y = 0.6 + (i % 4) * 0.08
+    add(g, sphere(0.025, 6, 5), mat(sprinkles[i % sprinkles.length]), Math.cos(a) * 0.29, y, Math.sin(a) * 0.29, false)
+  }
+  // a lollipop on top
+  add(g, cyl(0.012, 0.012, 0.18, 6), mat('#ffffff'), 0, 1.1, 0, false)
+  const pop = new THREE.Group()
+  pop.position.y = 1.2
+  g.add(pop)
+  RAINBOW.slice(0, 4).forEach((c, i) => {
+    const disc = add(pop, cyl(0.11 - i * 0.025, 0.11 - i * 0.025, 0.035 + i * 0.006, 16), mat(c), 0, 0, 0, i === 0)
+    disc.rotation.x = Math.PI / 2
+  })
+}
+
+function buildKasteeltoren(g: THREE.Group): void {
+  const pink = mat('#f7c6dc')
+  const light = mat('#ffe3ef')
+  const roof = mat('#c9b3ff')
+  add(g, cyl(0.36, 0.38, 0.1, 18), mat('#e9dff5'), 0, 0.05, 0)
+  add(g, cyl(0.28, 0.31, 0.95, 18), pink, 0, 0.57, 0)
+  add(g, cyl(0.33, 0.33, 0.08, 18), light, 0, 1.08, 0)
+  // battlements
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2
+    const b = add(g, rbox(0.09, 0.1, 0.07, 0.02), light, Math.cos(a) * 0.3, 1.17, Math.sin(a) * 0.3)
+    b.rotation.y = -a
+  }
+  add(g, cyl(0.0, 0.3, 0.42, 18), roof, 0, 1.4, 0)
+  add(g, sphere(0.04, 8, 6), mat('#ffd76a'), 0, 1.62, 0)
+  // flag
+  add(g, cyl(0.01, 0.01, 0.2, 5), mat('#8a7a90'), 0, 1.72, 0, false)
+  add(g, rbox(0.14, 0.08, 0.015, 0.005), mat('#ff9ec0'), 0.075, 1.78, 0, false)
+  // door and windows on the front (+z)
+  add(g, rbox(0.16, 0.26, 0.06, 0.05), mat('#c48ab0'), 0, 0.23, 0.29)
+  add(g, rbox(0.1, 0.13, 0.05, 0.04), mat('#b8dcfa'), 0, 0.72, 0.28)
+  add(g, sphere(0.035, 8, 6), mat('#ff9ec0'), 0, 0.88, 0.29, false)
+}
+
 /** Builds a prop. Static parts are merged into one vertex-coloured mesh (one draw call). */
 export function buildProp(type: string): THREE.Group {
   const g = buildRaw(type)
@@ -248,7 +421,7 @@ export function buildProp(type: string): THREE.Group {
   const statics: THREE.Mesh[] = []
   g.traverse((o) => {
     const m = o as THREE.Mesh
-    if (m.isMesh && m.material !== lampMat && m.material !== beamMat && m.material instanceof THREE.MeshLambertMaterial) {
+    if (m.isMesh && m.material !== lampMat && m.material !== heartMat && m.material !== beamMat && m.material instanceof THREE.MeshLambertMaterial) {
       statics.push(m)
     }
   })
@@ -310,6 +483,24 @@ function buildRaw(type: string): THREE.Group {
       break
     case 'hek':
       buildHek(g)
+      break
+    case 'hartjeslamp':
+      g.userData.glow = buildHartjeslamp(g)
+      break
+    case 'eenhoorn':
+      buildEenhoorn(g)
+      break
+    case 'hemelbed':
+      buildHemelbed(g)
+      break
+    case 'regenboogboog':
+      buildRegenboogboog(g)
+      break
+    case 'lollyboom':
+      buildLollyboom(g)
+      break
+    case 'kasteeltoren':
+      buildKasteeltoren(g)
       break
     case 'vuurtoren': {
       const r = buildVuurtoren(g)
@@ -381,6 +572,7 @@ export class PropLayer {
   setGlow(k: number): void {
     this.glowK = k
     lampMat.emissiveIntensity = 0.45 + 0.9 * k
+    heartMat.emissiveIntensity = 0.4 + 0.7 * k
     glowMat.opacity = 0.1 + 0.5 * k
     beamMat.opacity = 0.07 * k
   }

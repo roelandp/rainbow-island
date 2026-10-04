@@ -28,7 +28,7 @@ export function resultScreen(app: App, payload?: unknown): Screen {
   void app.scene.animalLeaves()
   app.scene.catPose('happy')
   app.audio.play('roundEnd')
-  app.scene.burst('stars', 'cat')
+  app.scene.burst('rainbow', 'cat')
 
   const parts: HTMLElement[] = [
     el('h2', { text: r.right >= r.total - 1 ? 'Wat een topronde!' : r.right >= r.total / 2 ? 'Goed gedaan!' : 'Lekker geoefend!' }),
@@ -62,6 +62,7 @@ export function resultScreen(app: App, payload?: unknown): Screen {
   const timer = window.setTimeout(() => {
     fired = true
     if (app.syncIsland(true)) {
+      app.scene.burst('rainbow', 'cat')
       app.audio.play('grow')
       app.toast('Het eiland groeit!')
     }

@@ -49,6 +49,16 @@ describe('rewards', () => {
     expect(nextStreak(2, 'wrong')).toBe(0)
   })
 
+  it('can hand out the rainbow and girly items', () => {
+    const rng = makeRng(7)
+    const seen = new Set<string>()
+    for (let i = 0; i < 2000; i++) for (const id of rewardFor('type', 'correct', 5, rng)) seen.add(id)
+    for (const id of ['regenboog', 'roze', 'lila', 'mint', 'hartjeslamp', 'eenhoorn', 'hemelbed', 'regenboogboog', 'lollyboom', 'kasteeltoren']) {
+      expect(seen.has(id)).toBe(true)
+    }
+    expect(seen.has('vuurtoren')).toBe(false)
+  })
+
   it('keeps an inventory', () => {
     let inv = addItems({}, ['gras', 'gras', 'vis'])
     expect(inv.gras).toBe(2)

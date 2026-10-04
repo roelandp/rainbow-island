@@ -1,7 +1,10 @@
 import * as THREE from 'three'
 import { markInstances } from './island'
 
-export type BurstKind = 'sparkle' | 'hearts' | 'stars' | 'splash'
+export type BurstKind = 'sparkle' | 'hearts' | 'stars' | 'splash' | 'rainbow'
+
+/** Pastel rainbow glitter colours. */
+const GLITTER = ['#ffb3c1', '#ffd3a8', '#fff1a8', '#c4ecb8', '#b8dcfa', '#d6c4fa', '#ffffff']
 
 const MAX_P = 192
 const MAX_RINGS = 32
@@ -190,7 +193,7 @@ export class Effects {
     this.active = true
     switch (kind) {
       case 'sparkle': {
-        const cols = ['#ffd76a', '#fff3b0', '#ffe9a0', '#ffffff']
+        const cols = ['#ffd76a', '#ffb3c1', '#fff3b0', '#b8dcfa', '#ffffff', '#d6c4fa', '#c4ecb8']
         for (let i = 0; i < 16; i++) {
           const a = rnd() * Math.PI * 2
           const sp = 0.6 + rnd() * 1.1
@@ -205,6 +208,41 @@ export class Effects {
             spin: (rnd() - 0.5) * 6,
             gravity: -0.8,
             color: new THREE.Color(cols[i % cols.length]),
+          })
+        }
+        // and two little hearts floating up
+        for (let i = 0; i < 2; i++) {
+          const side = i ? 0.35 : -0.35
+          spawn({
+            kind: 1,
+            pos: at.clone().add(camRight.clone().multiplyScalar(side)),
+            vel: camRight.clone().multiplyScalar(side * 0.4).add(new THREE.Vector3(0, 0.8 + rnd() * 0.3, 0)),
+            max: 1.0 + rnd() * 0.4,
+            size: 0.15 + rnd() * 0.06,
+            sway: 1 + rnd(),
+            color: new THREE.Color(i ? '#ffb3cf' : '#ff8fb8'),
+          })
+        }
+        break
+      }
+      case 'rainbow': {
+        // a fountain of rainbow glitter, stars and hearts
+        for (let i = 0; i < 30; i++) {
+          const a = (i / 30) * Math.PI + (rnd() - 0.5) * 0.25
+          const sp = 1.3 + rnd() * 0.7
+          const v = camRight.clone().multiplyScalar(Math.cos(a) * sp)
+          v.y = Math.sin(a) * sp + 0.7
+          const k = i % 5 === 0 ? 1 : i % 3 === 0 ? 2 : 0
+          spawn({
+            kind: k,
+            // hearts float without drag, so they start slower
+            vel: k === 1 ? v.multiplyScalar(0.4) : v,
+            max: 1.0 + rnd() * 0.5,
+            size: k === 0 ? 0.14 + rnd() * 0.12 : 0.17 + rnd() * 0.1,
+            spin: k === 1 ? 0 : (rnd() - 0.5) * 5,
+            sway: k === 1 ? 1 : 0,
+            gravity: k === 1 ? 0 : -1.4,
+            color: new THREE.Color(GLITTER[Math.floor((i / 30) * 6) % GLITTER.length]),
           })
         }
         break
@@ -227,7 +265,7 @@ export class Effects {
         break
       }
       case 'stars': {
-        const cols = ['#ffe36e', '#fff7c2', '#ffc95c', '#c9b3ff']
+        const cols = ['#ffe36e', '#ffb3c1', '#fff7c2', '#b8dcfa', '#ffc95c', '#c9b3ff', '#c4ecb8']
         for (let i = 0; i < 12; i++) {
           const a = (i / 12) * Math.PI * 2 + rnd() * 0.3
           const sp = 1.0 + rnd() * 0.8

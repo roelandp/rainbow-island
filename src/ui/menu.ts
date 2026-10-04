@@ -26,7 +26,7 @@ export function menuScreen(app: App): Screen {
   const top = el(
     'div.menu-top',
     {},
-    el('h1.title', { html: 'Rainbow<small>ISLAND</small>' }),
+    el('h1.title', { html: 'Rainbow<small><span class="deco">✦</span> ISLAND <span class="deco">♥</span></small>' }),
     el(
       'div.menu-stats',
       {},

@@ -107,7 +107,11 @@ void main() {
   float rd = d - (0.22 + ph * 0.95);
   float foam2 = (1.0 - smoothstep(0.0, 0.06, abs(rd))) * (1.0 - ph) * (0.65 + 0.35 * n);
   float foam = max(foam1, foam2 * 0.75);
-  col = mix(col, uFoam, foam * 0.92);
+  // the outgoing ring carries a soft pastel rainbow, hue running around the island
+  float hue = atan(p.y, p.x) * 0.159155 + uTime * 0.05;
+  vec3 rainbow = clamp(abs(fract(hue + vec3(0.0, 0.6667, 0.3333)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
+  vec3 foamCol = mix(uFoam, mix(uFoam, rainbow, 0.38), smoothstep(-0.1, 0.1, foam2 * 0.75 - foam1));
+  col = mix(col, foamCol, foam * 0.92);
 
   // haze towards the horizon, then fade out into the CSS sky
   float haze = smoothstep(uFade.x - 2.5, uFade.y, along);

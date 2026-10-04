@@ -3,7 +3,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { clamp01, easeOutBack, hash2 } from './tween'
 import { markInstances } from './island'
 
-export type BlockType = 'gras' | 'zand' | 'steen' | 'hout' | 'water' | 'bloemen'
+export type BlockType = 'gras' | 'zand' | 'steen' | 'hout' | 'water' | 'bloemen' | 'regenboog' | 'roze' | 'lila' | 'mint'
 /** y = layer index above the island surface: layer k occupies world y in [k, k + 1]. */
 export interface PlacedBlock {
   x: number
@@ -21,6 +21,9 @@ const COLORS = {
   zand: new THREE.Color('#f2dca6'),
   steen: new THREE.Color('#c9c5cf'),
   grass: new THREE.Color('#a6dc8c'),
+  roze: new THREE.Color('#ffc4dc'),
+  lila: new THREE.Color('#d7c6f7'),
+  mint: new THREE.Color('#bfeedd'),
 }
 const FLOWER_COLORS = ['#ff9ec0', '#fff1a0', '#ffffff', '#c9b3ff', '#ffb98a'].map((c) => new THREE.Color(c))
 
@@ -42,10 +45,12 @@ export class BlockLayer {
   private dots!: THREE.InstancedMesh
   private wood!: THREE.InstancedMesh
   private water!: THREE.InstancedMesh
+  private rainbow!: THREE.InstancedMesh
   private capacity = 0
   private readonly geos: THREE.BufferGeometry[]
   private readonly mats: THREE.Material[]
   private readonly woodTex: THREE.CanvasTexture
+  private readonly rainbowTex: THREE.CanvasTexture
   /** All water blocks as one seamless body: no walls between neighbours, one surface. */
   private readonly pond: THREE.Mesh
   private readonly pondMat: THREE.MeshLambertMaterial
@@ -63,6 +68,7 @@ export class BlockLayer {
     this.geos = [body, cap, dot, waterGeo]
 
     this.woodTex = makeWoodTexture()
+    this.rainbowTex = makeRainbowTexture()
     this.mats = [
       new THREE.MeshLambertMaterial({ color: '#ffffff' }),
       new THREE.MeshLambertMaterial({ color: COLORS.grass }),
@@ -74,6 +80,7 @@ export class BlockLayer {
         opacity: 0.75,
         depthWrite: false,
       }),
+      new THREE.MeshLambertMaterial({ color: '#ffffff', map: this.rainbowTex, emissive: '#ffffff', emissiveIntensity: 0.08 }),
     ]
     this.allocate(32)
     this.pondMat = new THREE.MeshLambertMaterial({
@@ -130,7 +137,7 @@ export class BlockLayer {
   }
 
   private allocate(cap: number): void {
-    for (const mesh of [this.plain, this.caps, this.dots, this.wood, this.water]) {
+    for (const mesh of [this.plain, this.caps, this.dots, this.wood, this.water, this.rainbow]) {
       if (mesh) {
         this.group.remove(mesh)
         mesh.dispose()
@@ -152,6 +159,7 @@ export class BlockLayer {
     this.dots = mk(dot, this.mats[2], cap * 5, false)
     this.wood = mk(body, this.mats[3], cap)
     this.water = mk(waterGeo, this.mats[4], cap, false)
+    this.rainbow = mk(body, this.mats[5], cap)
     // instanceColor buffers must exist before the first render
     const white = new THREE.Color(1, 1, 1)
     this.plain.setColorAt(0, white)
@@ -222,6 +230,7 @@ export class BlockLayer {
     let nd = 0
     let nw = 0
     let nwa = 0
+    let nr = 0
     for (const b of this.blocks) {
       const k = bkey(b)
       const ps = this.popStart.get(k)
@@ -252,12 +261,18 @@ export class BlockLayer {
           break
         case 'zand':
         case 'steen':
+        case 'roze':
+        case 'lila':
+        case 'mint':
           c.copy(COLORS[b.type]).offsetHSL(0, 0, (hash2(b.x, b.z, b.y) - 0.5) * 0.04)
           this.plain.setMatrixAt(np, m)
           this.plain.setColorAt(np++, c)
           break
         case 'hout':
           this.wood.setMatrixAt(nw++, m)
+          break
+        case 'regenboog':
+          this.rainbow.setMatrixAt(nr++, m)
           break
         case 'water':
           // Drawn as one seamless pond, see rebuildPond.
@@ -269,16 +284,18 @@ export class BlockLayer {
     this.dots.count = nd
     this.wood.count = nw
     this.water.count = nwa
-    for (const mesh of [this.plain, this.caps, this.dots, this.wood, this.water]) markInstances(mesh)
+    this.rainbow.count = nr
+    for (const mesh of [this.plain, this.caps, this.dots, this.wood, this.water, this.rainbow]) markInstances(mesh)
   }
 
   dispose(): void {
     for (const g of this.geos) g.dispose()
     for (const m of this.mats) m.dispose()
     this.woodTex.dispose()
+    this.rainbowTex.dispose()
     this.pond.geometry.dispose()
     this.pondMat.dispose()
-    for (const mesh of [this.plain, this.caps, this.dots, this.wood, this.water]) mesh.dispose()
+    for (const mesh of [this.plain, this.caps, this.dots, this.wood, this.water, this.rainbow]) mesh.dispose()
   }
 }
 
@@ -320,5 +337,22 @@ function makeWoodTexture(): THREE.CanvasTexture {
   const tex = new THREE.CanvasTexture(cv)
   tex.colorSpace = THREE.SRGBColorSpace
   tex.anisotropy = 4
+  return tex
+}
+
+/** Pastel rainbow stripes for the rainbow block, red on top. */
+function makeRainbowTexture(): THREE.CanvasTexture {
+  const cv = document.createElement('canvas')
+  cv.width = 16
+  cv.height = 128
+  const g = cv.getContext('2d')!
+  const cols = ['#ffb3c1', '#ffd3a8', '#fff1a8', '#c4ecb8', '#b8dcfa', '#d6c4fa']
+  const h = 128 / cols.length
+  cols.forEach((c, i) => {
+    g.fillStyle = c
+    g.fillRect(0, i * h, 16, h + 1)
+  })
+  const tex = new THREE.CanvasTexture(cv)
+  tex.colorSpace = THREE.SRGBColorSpace
   return tex
 }

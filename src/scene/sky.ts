@@ -13,11 +13,34 @@ function mixHex(a: string, b: string, k: number): string {
   return `rgb(${mix(16)},${mix(8)},${mix(0)})`
 }
 
+/** Pastel rainbow bands, outside (red) to inside (violet). */
+const RAINBOW = ['255,170,185', '255,205,160', '255,240,160', '190,236,180', '170,215,250', '195,185,250', '230,185,245']
+
+/**
+ * A soft pastel rainbow arch rising from the sea at the horizon, as a CSS layer
+ * over the sky (no GPU cost). It fades away towards sunset. Empty when there is
+ * too little sky to show it.
+ */
+export function rainbowArch(k: number, horizonPct: number): string | null {
+  const a = 0.5 * (1 - Math.min(1, k * 1.3))
+  if (a < 0.02 || horizonPct < 14) return null
+  const rx = Math.min(46, 18 + horizonPct * 0.5).toFixed(1)
+  const inner = 74
+  const step = (100 - inner) / (RAINBOW.length + 1)
+  const stops = RAINBOW.map((c, i) => `rgba(${c},${a.toFixed(3)}) ${(100 - step * (i + 1)).toFixed(1)}%`)
+    .reverse()
+    .join(', ')
+  // the layer only covers the sky above the horizon, so the arch never shows through the sea
+  return `radial-gradient(ellipse ${rx}% 84% at 50% 100%, rgba(255,255,255,0) ${inner}%, ${stops}, rgba(255,255,255,0) 100%) 0 0 / 100% ${horizonPct.toFixed(1)}% no-repeat`
+}
+
 /** k: 0 day .. 1 sunset. horizonPct: horizon position from the top of the host, in %. */
 export function skyGradient(k: number, horizonPct: number): string {
   const h = Math.max(8, Math.min(95, horizonPct))
   const c = DAY.map((d, i) => mixHex(d, SUNSET[i], k))
-  return `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} ${(h * 0.55).toFixed(1)}%, ${c[2]} ${h.toFixed(1)}%, ${c[2]} 100%)`
+  const sky = `linear-gradient(180deg, ${c[0]} 0%, ${c[1]} ${(h * 0.55).toFixed(1)}%, ${c[2]} ${h.toFixed(1)}%, ${c[2]} 100%)`
+  const bow = rainbowArch(k, h)
+  return bow ? `${bow}, ${sky}` : sky
 }
 
 interface Cloud {
