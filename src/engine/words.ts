@@ -34,6 +34,13 @@ export interface WordState {
    */
   retryIn: number
   last: Outcome | null
+  /**
+   * Short sentences only (never typed): right answers per direction that were at
+   * least SPACING_MS apart. recognize = NL to EN, reverse = EN to NL.
+   */
+  dirClean: { recognize: number; reverse: number }
+  /** When each direction was last counted in `dirClean` (ms, 0 = never). */
+  dirAt: { recognize: number; reverse: number }
 }
 
 export function emptyState(): WordState {
@@ -50,6 +57,8 @@ export function emptyState(): WordState {
     wrongStreak: 0,
     retryIn: -1,
     last: null,
+    dirClean: { recognize: 0, reverse: 0 },
+    dirAt: { recognize: 0, reverse: 0 },
   }
 }
 
@@ -60,6 +69,10 @@ export function reviveState(raw: unknown): WordState {
   const v = raw as Partial<WordState>
   const num = (x: unknown, d: number) => (typeof x === 'number' && Number.isFinite(x) ? x : d)
   const box = Math.max(0, Math.min(MAX_BOX, Math.round(num(v.box, 0)))) as Box
+  const pair = (x: unknown) => {
+    const o = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>
+    return { recognize: num(o.recognize, 0), reverse: num(o.reverse, 0) }
+  }
   const right = { ...base.right }
   if (v.right && typeof v.right === 'object') {
     for (const t of QUESTION_TYPES) right[t] = num((v.right as Record<string, unknown>)[t], 0)
@@ -77,6 +90,8 @@ export function reviveState(raw: unknown): WordState {
     wrongStreak: num(v.wrongStreak, 0),
     retryIn: num(v.retryIn, -1),
     last: v.last === 'correct' || v.last === 'hint' || v.last === 'almost' || v.last === 'wrong' ? v.last : null,
+    dirClean: pair(v.dirClean),
+    dirAt: pair(v.dirAt),
   }
 }
 
@@ -109,9 +124,22 @@ export function isDue(s: WordState, now: number, msToTest: number | null): boole
   return false
 }
 
+/** Right answers needed per direction (spaced) before a short sentence counts as learned. */
+export const SENTENCE_DIR_NEEDED = 2
+
+/** A short sentence is learned from both directions, since it is never typed. */
+export function sentenceLearned(s: WordState): boolean {
+  return s.box >= 4 && s.dirClean.recognize >= SENTENCE_DIR_NEEDED && s.dirClean.reverse >= SENTENCE_DIR_NEEDED
+}
+
+/**
+ * Words: box 4+ and typed right twice (spaced). Short sentences: box 4+ and right
+ * twice in both directions (spaced). `dirClean` only grows for sentences, so this
+ * needs no flag.
+ */
 export function statusOf(s: WordState): WordStatus {
   if (s.seen === 0) return 'nieuw'
-  if (s.box >= 4 && s.typedClean >= 2) return 'geleerd'
+  if (s.box >= 4 && (s.typedClean >= 2 || sentenceLearned(s))) return 'geleerd'
   if (s.box >= 3) return 'bijna'
   return 'oefenen'
 }
@@ -123,9 +151,14 @@ export function statusOf(s: WordState): WordStatus {
  * variety on words that are already strong. After two misses in a row while
  * typing, one easier question helps to get the word back.
  */
-export function typeFor(s: WordState, hasSentence: boolean, roll: number): QuestionType {
+export function typeFor(s: WordState, hasSentence: boolean, roll: number, isSentence = false): QuestionType {
   if (s.right.recognize < 1) return 'recognize'
   if (s.right.reverse < 1) return 'reverse'
+  if (isSentence) {
+    // Short sentences: only the two choice questions; the weaker direction first.
+    if (s.dirClean.recognize !== s.dirClean.reverse) return s.dirClean.recognize < s.dirClean.reverse ? 'recognize' : 'reverse'
+    return roll < 0.5 ? 'recognize' : 'reverse'
+  }
   if (hasSentence && s.right.sentence < 1) return 'sentence'
   if (s.wrongStreak >= 2) return hasSentence ? 'sentence' : 'recognize'
   if (s.box >= 4 && s.typedClean >= 2 && roll < 0.25) {
@@ -138,7 +171,9 @@ export function typeFor(s: WordState, hasSentence: boolean, roll: number): Quest
 /**
  * Applies one answer. Right: up a box. Wrong: back to box 1 and comes back
  * within 3 questions. Almost: no box gain and comes back soon. Hint: right, but
- * no box gain.
+ * no box gain. `isSentence`: a short sentence, which is never typed, so its
+ * choice answers can reach the top boxes (box 4+ only with time in between)
+ * and count per direction.
  */
 export function applyAnswer(
   prev: WordState,
@@ -146,8 +181,9 @@ export function applyAnswer(
   outcome: Outcome,
   now: number,
   msToTest: number | null,
+  isSentence = false,
 ): WordState {
-  const s: WordState = { ...prev, right: { ...prev.right } }
+  const s: WordState = { ...prev, right: { ...prev.right }, dirClean: { ...prev.dirClean }, dirAt: { ...prev.dirAt } }
   s.seen++
   s.lastSeen = now
   s.last = outcome
@@ -171,6 +207,16 @@ export function applyAnswer(
       s.right.recognize = Math.max(1, s.right.recognize)
       s.right.reverse = Math.max(1, s.right.reverse)
       s.right.sentence = Math.max(1, s.right.sentence)
+    } else if (outcome === 'correct' && isSentence) {
+      const spacedBox = prev.lastSeen === 0 || now - prev.lastSeen >= SPACING_MS
+      if (s.box < 3 || spacedBox) s.box = Math.min(MAX_BOX, s.box + 1) as Box
+      if (type === 'recognize' || type === 'reverse') {
+        const at = prev.dirAt[type]
+        if (prev.dirClean[type] === 0 || now - at >= SPACING_MS) {
+          s.dirClean[type]++
+          s.dirAt[type] = now
+        }
+      }
     } else if (outcome === 'correct') {
       // Choice questions lift a word up to box 3 at most; the top boxes are earned by typing.
       if (s.box < 3) s.box = (s.box + 1) as Box

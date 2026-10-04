@@ -1,3 +1,4 @@
+import { langOf } from '../engine/text'
 import type { Question, Toets, ToetsFile } from './types'
 
 export type { Question, Toets } from './types'
@@ -29,7 +30,7 @@ export function parseToetsen(raw: Record<string, Record<string, ToetsFile>>): To
       const words = new Set<string>()
       for (const q of t.questions) {
         if (!isQuestion(q)) continue
-        const word = q.word.trim()
+        const word = q.word.trim().replace(/\s+/g, ' ')
         if (words.has(word)) continue
         words.add(word)
         const sentence = typeof q.sentence === 'string' && q.sentence.includes('___') ? q.sentence : undefined
@@ -38,11 +39,12 @@ export function parseToetsen(raw: Record<string, Record<string, ToetsFile>>): To
       if (questions.length === 0) continue
       seen.add(id)
       const date = typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : undefined
-      out.push({ id, title: t.title || id, date, theme: t.theme, language: t.language, questions })
+      const title = typeof t.title === 'string' && t.title.trim() ? t.title.trim() : id
+      out.push({ id, title, date, theme: t.theme, language: langOf(t.language), questions })
     }
   }
-  // Newest first; undated tests last.
-  out.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.id.localeCompare(b.id))
+  // Newest first; undated tests last, in file order (stable sort).
+  out.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
   return out
 }
 
@@ -52,13 +54,16 @@ export function toetsById(id: string | null | undefined): Toets | undefined {
   return TOETSEN.find((t) => t.id === id)
 }
 
-/** The chosen test, or the one with the newest date. */
+/** Shown only when no list could be loaded at all, so the app never crashes. */
+const EMPTY: Toets = { id: 'leeg', title: 'Engels', language: 'en', questions: [{ word: 'cat', definition: 'kat' }] }
+
+/** The chosen test (a removed id falls back), or the first one. */
 export function activeToets(chosen?: string | null): Toets {
-  return toetsById(chosen) ?? TOETSEN[0]
+  return toetsById(chosen) ?? TOETSEN[0] ?? EMPTY
 }
 
 /** Short Dutch label like "do 8 oktober". */
-export function formatDate(date: string | undefined): string {
+export function formatDate(date: string | null | undefined): string {
   if (!date) return ''
   const d = new Date(`${date}T12:00:00`)
   const days = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za']
@@ -67,7 +72,7 @@ export function formatDate(date: string | undefined): string {
 }
 
 /** Whole calendar days from `now` until the test date; negative once it is over. */
-export function daysUntil(date: string | undefined, now = Date.now()): number | null {
+export function daysUntil(date: string | null | undefined, now = Date.now()): number | null {
   if (!date) return null
   const test = new Date(`${date}T00:00:00`).getTime()
   const n = new Date(now)

@@ -1445,3 +1445,96 @@ input {
   background: var(--accent-soft);
   color: var(--accent-deep);
 }
+
+/* ---------- Rainbow Island: English in a rounded sans, Dutch in school handwriting ---------- */
+
+:root {
+  --font-en: ui-rounded, 'SF Pro Rounded', 'Nunito', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-nl: 'Schoolschrift', ui-rounded, 'SF Pro Rounded', -apple-system, system-ui, sans-serif;
+}
+
+.en,
+.q-prompt.en,
+.learn .answer.en,
+.detail h2.en {
+  font-family: var(--font-en);
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  font-feature-settings: normal;
+}
+
+.q-prompt.en {
+  color: #2f2640;
+}
+
+.q-prompt.word.en {
+  font-weight: 900;
+  color: #4a2a12;
+}
+
+/* Dutch translation of the gap word, small under the sentence. */
+.q-trans {
+  font-family: var(--font-nl);
+  font-size: 22px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-dim);
+  margin: -6px 0 12px;
+}
+
+/* Answer buttons: big and easy to tap for a 7-year-old. */
+.opt,
+.options.long .opt {
+  min-height: 64px;
+}
+
+.options.big .opt {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.options.big.long .opt {
+  font-size: 21px;
+  text-align: center;
+}
+
+.opt.nl {
+  font-family: var(--font-nl);
+  font-weight: 400;
+  font-size: 28px;
+  letter-spacing: 0;
+  font-variant-ligatures: common-ligatures contextual;
+  font-feature-settings: 'calt' 1, 'liga' 1, 'ss01' 1, 'ss04' 1;
+}
+
+.options.big.long .opt.nl {
+  font-size: 25px;
+}
+
+@media (max-height: 760px) {
+  .opt,
+  .options.long .opt {
+    min-height: 64px;
+  }
+}
+
+.type-input.en {
+  font-family: var(--font-en);
+  font-size: 28px;
+}
+
+.detail p.nl-big {
+  font-family: var(--font-nl);
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.detail .sentence.en {
+  font-family: var(--font-en);
+  font-size: 20px;
+}
+
+.tile span.en {
+  font-family: var(--font-en);
+  font-weight: 800;
+}

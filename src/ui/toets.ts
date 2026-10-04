@@ -5,7 +5,6 @@ import { makeRng } from '../engine/rng'
 import { addItems, rewardFor } from '../game/rewards'
 import { addTime, clock, secondsFor } from '../game/buildtime'
 import type { TestResult } from '../storage/schema'
-import { speakButton } from './common'
 import { el } from './dom'
 import { checkLighthouse } from './result'
 
@@ -20,11 +19,13 @@ function gradeText(g: number): string {
 }
 
 /**
- * Practice test: every word of the active test in random order, meaning shown,
- * word typed. No hints and no feedback per question; the result comes at the end.
+ * Practice test: every word of the active test in random order, Dutch shown,
+ * English typed (short sentences: chosen from 4). No hints and no feedback per
+ * question; the result comes at the end. Nothing is read aloud: that would give it away.
  */
 export function toetsScreen(app: App): Screen {
   const toets = app.toets
+  const isEn = toets.language === 'en'
   const root = el('div.screen.solid')
   const top = el('div.topbar', {}, el('button.btn.small', { onclick: () => app.go('menu') }, '✕ Stoppen'), el('h1', { text: 'Proeftoets' }))
   const body = el('div.scroller')
@@ -43,7 +44,9 @@ export function toetsScreen(app: App): Screen {
         {},
         el('h2', { text: toets.title }),
         el('p', {
-          text: `Je krijgt alle ${toets.questions.length} woorden, door elkaar. Je ziet de betekenis en typt het woord. Net als op school: geen hints, en pas aan het eind zie je hoe het ging. Elk goed woord levert een blok op.`,
+          text: isEn
+            ? `Je krijgt alle ${toets.questions.length} woorden en zinnen, door elkaar. Je ziet het Nederlands en typt het Engels. Bij een zin kies je het goede Engels. Net als op school: geen hints. Pas aan het eind zie je hoe het ging. Elk goed antwoord levert een blok op.`
+            : `Je krijgt alle ${toets.questions.length} woorden, door elkaar. Je ziet de betekenis en typt het woord. Net als op school: geen hints, en pas aan het eind zie je hoe het ging. Elk goed woord levert een blok op.`,
         }),
         el('button.btn.primary', { style: { width: '100%' }, onclick: () => run() }, 'Start de proeftoets'),
       ),
@@ -85,16 +88,57 @@ export function toetsScreen(app: App): Screen {
       autocapitalize: 'none',
       spellcheck: 'false',
       enterkeyhint: 'next',
-      placeholder: 'Typ het woord...',
+      lang: isEn ? 'en' : 'nl',
+      placeholder: isEn ? 'Typ het Engels...' : 'Typ het woord...',
     }) as HTMLInputElement
+    if (isEn) input.classList.add('en')
     const form = el('form.type-row', {}, input, el('button.btn.green', { type: 'submit' }, 'Volgende'))
-    const card = el('div.card.panel', {}, el('div.q-head', {}, counter, speakButton(app, () => order[i]?.definition ?? '')), prompt, form)
+    const choices = el('div.options.big')
+    const card = el('div.card.panel', {}, el('div.q-head', {}, counter), prompt, form, choices)
     inner.replaceChildren(card)
 
+    const advance = () => {
+      app.audio.play('tap')
+      i++
+      if (i >= order.length) finish(answers)
+      else show()
+    }
+
     const show = () => {
+      const q = order[i]
       counter.textContent = `Vraag ${i + 1} van ${order.length}`
-      prompt.textContent = order[i].definition
+      prompt.textContent = q.definition
       input.value = ''
+      // Short sentences are never typed: choose the right English one.
+      if (engine.isSentence(q.word)) {
+        const pick = engine.make(q, 'fallback', 'recognize')
+        const opts = pick.options!
+        const long = opts.labels.some((l) => l.length > 26)
+        choices.className = `options big${long ? ' long' : ''}`
+        choices.replaceChildren(
+          ...opts.labels.map((label, k) =>
+            el('button.opt.en', {
+              text: label,
+              onclick: () => {
+                if (busy || order[i] !== q) return
+                busy = true
+                window.setTimeout(() => (busy = false), 250)
+                const ok = k === opts.answer
+                answers.push({ q, answer: label, ok })
+                engine.record(q.word, 'recognize', ok ? 'correct' : 'wrong')
+                app.saveEngine(engine)
+                advance()
+              },
+            }),
+          ),
+        )
+        form.classList.add('hidden')
+        choices.classList.remove('hidden')
+        input.blur()
+        return
+      }
+      choices.classList.add('hidden')
+      form.classList.remove('hidden')
       input.focus()
     }
 
@@ -108,16 +152,13 @@ export function toetsScreen(app: App): Screen {
       }
       busy = true
       window.setTimeout(() => (busy = false), 250)
-      const check = checkTyped(value, q.word)
+      const check = checkTyped(value, q.word, engine.lang)
       // On a test, spelling counts: almost is not right.
       const ok = check.result === 'correct'
       answers.push({ q, answer: value.trim(), ok })
       engine.record(q.word, 'type', ok ? 'correct' : check.result === 'almost' ? 'almost' : 'wrong')
       app.saveEngine(engine)
-      app.audio.play('tap')
-      i++
-      if (i >= order.length) finish(answers)
-      else show()
+      advance()
     })
     show()
   }
@@ -151,7 +192,7 @@ export function toetsScreen(app: App): Screen {
         {},
         el('h2', { text: 'Jouw cijfer' }),
         el('div.grade', { text: gradeText(g) }),
-        el('p.note', { html: `<strong>${correct} van de ${answers.length}</strong> goed gespeld. Je verdient ${items.length} ${items.length === 1 ? 'blok' : 'blokken'} en ${clock(seconds)} bouwtijd.` }),
+        el('p.note', { html: `<strong>${correct} van de ${answers.length}</strong> goed${isEn ? '' : ' gespeld'}. Je verdient ${items.length} ${items.length === 1 ? 'blok' : 'blokken'} en ${clock(seconds)} bouwtijd.` }),
         lighthouse ? el('p.note', { html: '<strong>Alle woorden geleerd! Er staat een vuurtorentje voor je klaar.</strong>' }) : null,
         wrong.length > 0
           ? el(
@@ -162,7 +203,7 @@ export function toetsScreen(app: App): Screen {
                 'ul.mistakes',
                 {},
                 ...wrong.map((a) =>
-                  el('li', {}, a.answer ? el('span.given', { text: a.answer }) : el('span.given', { text: '(leeg)' }), el('span.good', { text: a.q.word }), el('span', { style: { fontWeight: '700', color: 'var(--ink-dim)', flexBasis: '100%' }, text: a.q.definition })),
+                  el('li', {}, a.answer ? el('span.given', { text: a.answer }) : el('span.given', { text: '(leeg)' }), el(`span.good${isEn ? '.en' : ''}`, { text: a.q.word }), el('span', { style: { fontWeight: '700', color: 'var(--ink-dim)', flexBasis: '100%' }, text: a.q.definition })),
                 ),
               ),
             )

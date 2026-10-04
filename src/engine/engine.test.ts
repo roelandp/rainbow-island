@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TOETSEN, activeToets, parseToetsen } from '../content'
 import type { Toets } from '../content/types'
+import nlFixture from './fixtures/nl_toets.json'
 import { checkTyped } from './answer'
 import { buildOptions, pickDistractors } from './distractors'
 import { WordEngine } from './engine'
@@ -8,18 +9,35 @@ import { makeRng } from './rng'
 import { diffMarks, letterHint, splitArticle, wordKind } from './text'
 import { applyAnswer, emptyState, intervalMs, isDue, statusOf, typeFor, type WordState } from './words'
 
-const toets = activeToets()
+// The Dutch list of Kit Nugget Eiland, kept as a fixture so the Dutch rules stay tested.
+const toets = parseToetsen({ nl: nlFixture } as never)[0]
 const DAY = 86_400_000
 
 describe('content', () => {
-  it('loads the test of 8 October with 40 words and sentences', () => {
-    expect(TOETSEN.length).toBeGreaterThan(0)
+  it('loads the Dutch fixture with 40 words and sentences', () => {
     expect(toets.id).toBe('toets_8_oktober')
+    expect(toets.language).toBe('nl')
     expect(toets.questions).toHaveLength(40)
     for (const q of toets.questions) {
       expect(q.sentence?.split('___')).toHaveLength(2)
       expect(q.sentence).not.toMatch(/[—–]/)
     }
+  })
+
+  it('loads the real lists, all English, without a date', () => {
+    expect(TOETSEN.length).toBeGreaterThan(0)
+    const active = activeToets('bestaat-niet')
+    expect(active).toBe(TOETSEN[0])
+    for (const t of TOETSEN) {
+      expect(t.language).toBe('en')
+      expect(t.questions.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('treats date null as no date', () => {
+    const [t] = parseToetsen({ a: { x: { title: 'X', date: null, language: 'en', questions: [{ word: 'cat', definition: 'kat' }] } } } as never)
+    expect(t.date).toBeUndefined()
+    expect(t.language).toBe('en')
   })
 
   it('picks the newest dated test as active and accepts the old format', () => {

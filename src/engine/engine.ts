@@ -1,6 +1,7 @@
 import type { Question, Toets } from '../content/types'
 import { buildOptions, type Options } from './distractors'
 import { makeRng, weightedPick, type Rng } from './rng'
+import { englishKind, langOf, type Lang } from './text'
 import {
   applyAnswer,
   emptyState,
@@ -42,6 +43,7 @@ const DEFAULT_MIX = { due: 0.6, fresh: 0.25, known: 0.15 }
  */
 export class WordEngine {
   readonly toets: Toets
+  readonly lang: Lang
   private states = new Map<string, WordState>()
   private rng: Rng
   private now: () => number
@@ -50,6 +52,7 @@ export class WordEngine {
 
   constructor(opts: EngineOptions) {
     this.toets = opts.toets
+    this.lang = langOf(opts.toets.language)
     this.rng = makeRng(opts.seed ?? (Date.now() & 0x7fffffff))
     this.now = opts.now ?? (() => Date.now())
     this.mix = opts.mix ?? DEFAULT_MIX
@@ -60,6 +63,11 @@ export class WordEngine {
 
   get questions(): Question[] {
     return this.toets.questions
+  }
+
+  /** English short sentences ("What is your name?") are never typed and have their own learned rule. */
+  isSentence(word: string): boolean {
+    return this.lang === 'en' && englishKind(word) === 'sentence'
   }
 
   state(word: string): WordState {
@@ -83,7 +91,7 @@ export class WordEngine {
 
   snapshot(): Record<string, WordState> {
     const out: Record<string, WordState> = {}
-    for (const [k, v] of this.states) out[k] = { ...v, right: { ...v.right } }
+    for (const [k, v] of this.states) out[k] = { ...v, right: { ...v.right }, dirClean: { ...v.dirClean }, dirAt: { ...v.dirAt } }
     return out
   }
 
@@ -140,7 +148,7 @@ export class WordEngine {
         const q = weightedPick(this.rng, strong, (x) => {
           const s = this.state(x.word)
           const hours = Math.max(0, now - s.lastSeen) / 3_600_000
-          return 1 + Math.min(hours, 72) + (isDue(s, now, toTest) ? 48 : 0) + (s.typedClean < 2 ? 24 : 0)
+          return 1 + Math.min(hours, 72) + (isDue(s, now, toTest) ? 48 : 0) + (statusOf(s) !== 'geleerd' ? 24 : 0)
         })
         return this.make(q, 'known')
       }
@@ -159,13 +167,13 @@ export class WordEngine {
   /**
    * Within two weeks of the test, while there are words never seen, new words
    * get at least 60% of the questions, more when time is short (up to 85%), so every word comes by soon and well before the test day.
-   * Planned on two rounds of 12 a day. The rest stays repetition of missed and
+   * Planned on two rounds of 10 a day. The rest stays repetition of missed and
    * due words, which is what makes them stick.
    */
   mixFor(unseen: number, toTest: number | null): { due: number; fresh: number; known: number } {
     if (toTest === null || unseen === 0 || toTest > 14 * 86_400_000) return this.mix
     const daysLeft = Math.max(1, toTest / 86_400_000 - 1)
-    const needed = Math.min(0.85, Math.max(0.6, unseen / (daysLeft * 24)))
+    const needed = Math.min(0.85, Math.max(0.6, unseen / (daysLeft * 20)))
     if (needed <= this.mix.fresh) return this.mix
     const rest = 1 - needed
     const scale = rest / (this.mix.due + this.mix.known)
@@ -175,11 +183,15 @@ export class WordEngine {
   /** A pick for a given word, e.g. for the practice test. */
   make(q: Question, reason: PickReason, forceType?: QuestionType): Pick {
     const s = this.state(q.word)
-    const type = forceType ?? typeFor(s, Boolean(q.sentence), this.rng.next())
+    const sentenceItem = this.isSentence(q.word)
+    let type = forceType ?? typeFor(s, Boolean(q.sentence) && !sentenceItem, this.rng.next(), sentenceItem)
+    // Typing and gap questions never happen for a short sentence; a gap needs a sentence.
+    if (sentenceItem && (type === 'type' || type === 'sentence')) type = 'recognize'
+    if (type === 'sentence' && !q.sentence) type = 'recognize'
     let options: Options | null = null
-    if (type === 'recognize') options = buildOptions(q, this.questions, this.rng, 'word')
-    else if (type === 'reverse') options = buildOptions(q, this.questions, this.rng, 'definition')
-    else if (type === 'sentence') options = buildOptions(q, this.questions, this.rng, 'gap')
+    if (type === 'recognize') options = buildOptions(q, this.questions, this.rng, 'word', 4, this.lang)
+    else if (type === 'reverse') options = buildOptions(q, this.questions, this.rng, 'definition', 4, this.lang)
+    else if (type === 'sentence') options = buildOptions(q, this.questions, this.rng, 'gap', 4, this.lang)
     return { q, type, reason, options }
   }
 
@@ -191,7 +203,7 @@ export class WordEngine {
     for (const [k, s] of this.states) {
       if (k !== word && s.retryIn > 0) this.states.set(k, { ...s, retryIn: s.retryIn - 1 })
     }
-    const next = applyAnswer(prev, type, outcome, this.now(), this.msToTest())
+    const next = applyAnswer(prev, type, outcome, this.now(), this.msToTest(), this.isSentence(word))
     this.states.set(word, next)
     this.lastWord = word
     return { before, after: statusOf(next) }

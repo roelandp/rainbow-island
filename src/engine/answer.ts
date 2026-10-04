@@ -1,4 +1,4 @@
-import { ARTICLES, editDistance, normalize, splitArticle, stripAccents, wordKind } from './text'
+import { ARTICLES, alternatives, editDistance, normalize, normalizeEn, splitArticle, stripAccents, stripEnArticle, wordKind, type Lang } from './text'
 
 export type TypedResult = 'correct' | 'almost' | 'wrong'
 /** Why an answer was only "almost": wrong article, missing accent or one letter off. */
@@ -16,7 +16,8 @@ export interface TypedCheck {
  * - a wrong article, a missing accent or one letter off is "almost": on the test
  *   spelling counts, so almost is never right
  */
-export function checkTyped(input: string, word: string): TypedCheck {
+export function checkTyped(input: string, word: string, lang: Lang = 'nl'): TypedCheck {
+  if (lang === 'en') return checkTypedEn(input, word)
   const answer = normalize(input)
   const full = normalize(word)
   if (answer === '') return { result: 'wrong' }
@@ -53,5 +54,25 @@ export function checkTyped(input: string, word: string): TypedCheck {
     return { result: 'almost', reason: 'typo' }
   }
 
+  return { result: 'wrong' }
+}
+
+/**
+ * English: every "/" alternative counts, "the", "a" or "an" in front is always
+ * optional, case and . ? ! , never matter. One letter off (4+ letters) or a
+ * missing space is "almost".
+ */
+export function checkTypedEn(input: string, word: string): TypedCheck {
+  const answer = stripEnArticle(normalizeEn(input))
+  if (answer === '') return { result: 'wrong' }
+  const accepted = alternatives(word).map((a) => stripEnArticle(normalizeEn(a))).filter((a) => a !== '')
+  if (accepted.includes(answer)) return { result: 'correct' }
+  // The whole "mum / mother" typed out is right too.
+  const slash = (t: string) => t.replace(/\s*\/\s*/g, '/')
+  if (word.includes('/') && slash(answer) === slash(stripEnArticle(normalizeEn(word)))) return { result: 'correct' }
+  for (const target of accepted) {
+    if (target.replace(/ /g, '').length >= 4 && editDistance(answer, target, 1) <= 1) return { result: 'almost', reason: 'typo' }
+    if (target.includes(' ') && answer.replace(/ /g, '') === target.replace(/ /g, '')) return { result: 'almost', reason: 'typo' }
+  }
   return { result: 'wrong' }
 }

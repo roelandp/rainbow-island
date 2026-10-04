@@ -5,7 +5,7 @@ import type { Question } from '../content/types'
 import { checkTyped, type AlmostReason } from '../engine/answer'
 import type { Pick } from '../engine/engine'
 import { makeRng } from '../engine/rng'
-import { diffMarks, gapForm, letterHint, splitArticle } from '../engine/text'
+import { alternatives, closestAlternative, diffMarks, gapForm, gapFormFor, letterHint, letterHintEn, splitArticle, type Lang } from '../engine/text'
 import type { Outcome } from '../engine/words'
 import { finishRound } from '../game/day'
 import { addItems, nextStreak, rewardFor } from '../game/rewards'
@@ -13,7 +13,8 @@ import { EXTENSION_SECONDS, LEARNED_BONUS, UNLOCK_RIGHT, addTime, clock, nextRun
 import { inventoryChip, sleep, speakButton, updateInventoryChip, watchInsets } from './common'
 import { el } from './dom'
 
-export const ROUND_LENGTH = 12
+/** Ten questions: a good pace for a 7-year-old. */
+export const ROUND_LENGTH = 10
 
 export interface RoundResult {
   earned: ItemId[]
@@ -32,6 +33,18 @@ const KIND_LABEL: Record<Pick['type'], string> = {
   type: 'Typ het woord dat hierbij hoort',
 }
 
+const KIND_LABEL_EN: Record<Pick['type'], string> = {
+  recognize: 'Hoe zeg je dit in het Engels?',
+  reverse: 'Wat betekent dit?',
+  sentence: 'Welk woord past in de zin?',
+  type: 'Typ het in het Engels',
+}
+
+/** The gap sentence with the word filled in, for reading aloud (first alternative only). */
+export function filledSentence(q: Question): string {
+  return (q.sentence ?? '').replace('___', alternatives(q.word)[0])
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c)
 }
@@ -42,7 +55,17 @@ function pickLine(lines: string[], word?: string): string {
 }
 
 /** The correct word with the letters that went wrong highlighted. */
-export function markedWord(answer: string, word: string): HTMLElement {
+export function markedWord(answer: string, word: string, lang: Lang = 'nl'): HTMLElement {
+  if (lang === 'en') {
+    const wrap = el('div.answer.en')
+    const target = answer.trim() ? closestAlternative(answer, word) : word
+    const marks = answer.trim() ? diffMarks(answer.trim(), target) : [...target].map((ch) => ({ ch, ok: true }))
+    for (const m of marks) {
+      if (m.ok) wrap.appendChild(document.createTextNode(m.ch))
+      else wrap.appendChild(el('span.x', { text: m.ch }))
+    }
+    return wrap
+  }
   const wrap = el('div.answer')
   // Compare against the form the player aimed at: with article if they typed one.
   const { article } = splitArticle(word)
@@ -72,6 +95,8 @@ export function roundScreen(app: App, payload?: unknown): Screen {
   const length = unlock ? UNLOCK_RIGHT : ROUND_LENGTH
   const engine = app.makeEngine()
   engine.avoid(app.lastWord)
+  const lang = engine.lang
+  const en = lang === 'en'
   const rng = makeRng(Date.now() & 0x7fffffff)
   const earned: ItemId[] = []
   const learned: string[] = []
@@ -198,7 +223,8 @@ export function roundScreen(app: App, payload?: unknown): Screen {
     const pick = engine.next()
     const animal = animalById(app.nextAnimal())
     currentAnimal = animal
-    const line = pickLine(pick.type === 'reverse' ? animal.askWord : animal.ask, pick.q.word)
+    // Only name the English word when it is on screen anyway (EN to NL).
+    const line = pick.type === 'reverse' ? pickLine(animal.askWord, pick.q.word) : pickLine(animal.ask)
     const who = showQuestion(pick, `${animal.naam} komt eraan...`)
     const my = ++seq
     answered = false
@@ -231,10 +257,11 @@ export function roundScreen(app: App, payload?: unknown): Screen {
 
   function promptFor(pick: Pick): HTMLElement {
     const q = pick.q
-    if (pick.type === 'reverse') return el('div.q-prompt.word', { text: q.word })
+    const enCls = en ? '.en' : ''
+    if (pick.type === 'reverse') return el(`div.q-prompt${en && engine.isSentence(q.word) ? lengthClass(q.word) : '.word'}${enCls}`, { text: q.word })
     if (pick.type === 'sentence' && q.sentence) {
       const [a, b] = q.sentence.split('___')
-      return el(`div.q-prompt${lengthClass(q.sentence)}`, { html: `${escapeHtml(a)}<span class="gap">&nbsp;</span>${escapeHtml(b ?? '')}` })
+      return el(`div.q-prompt${lengthClass(q.sentence)}${enCls}`, { html: `${escapeHtml(a)}<span class="gap">&nbsp;</span>${escapeHtml(b ?? '')}` })
     }
     return el(`div.q-prompt${lengthClass(q.definition)}`, { text: q.definition })
   }
@@ -243,46 +270,79 @@ export function roundScreen(app: App, payload?: unknown): Screen {
     return text.length > 130 ? '.xlong' : text.length > 80 ? '.long' : ''
   }
 
-  function speakTextFor(pick: Pick): string {
+  /** What the speaker button reads. English lists: always the English, never Dutch. */
+  function speakTextFor(pick: Pick, answeredNow: boolean): string {
+    if (en) {
+      if (pick.type === 'sentence' && pick.q.sentence) return answeredNow ? filledSentence(pick.q) : pick.q.sentence
+      return pick.q.word
+    }
     if (pick.type === 'reverse') return pick.q.word
     if (pick.type === 'sentence' && pick.q.sentence) return pick.q.sentence.replace('___', '... hm ...')
     return pick.q.definition
   }
 
+  /** English read aloud after an answer: the word, or the whole sentence for a gap question. */
+  function sayAfter(pick: Pick): void {
+    if (!en) return
+    app.say(pick.type === 'sentence' && pick.q.sentence ? filledSentence(pick.q) : pick.q.word)
+  }
+
+  /** The speaker button of the current question; hidden until answered for NL to EN and typing. */
+  let speaker: HTMLElement | null = null
+  let revealed = false
+
+  function reveal(): void {
+    revealed = true
+    speaker?.classList.remove('hidden')
+  }
+
   function showQuestion(pick: Pick, intro: string): HTMLElement {
     card.replaceChildren()
+    revealed = false
     const who = el('div.q-who', { text: intro })
-    const head = el('div.q-head', {}, who, speakButton(app, () => speakTextFor(pick)))
+    speaker = speakButton(app, () => speakTextFor(pick, revealed))
+    // Reading the English out loud before answering would give it away.
+    if (en && (pick.type === 'recognize' || pick.type === 'type')) speaker.classList.add('hidden')
+    const head = el('div.q-head', {}, who, speaker)
     const prompt = promptFor(pick)
+    const trans = en && pick.type === 'sentence' ? el('div.q-trans', { text: pick.q.definition }) : null
     const feedback = el('div.feedback')
     const learnBox = el('div.learn.hidden')
     const body = pick.type === 'type' ? typeBody(pick, feedback, learnBox) : choiceBody(pick, prompt, feedback, learnBox)
-    card.append(el('div.sheet-scroll', {}, head, el('div.q-kind', { text: KIND_LABEL[pick.type] }), prompt, learnBox, feedback, body))
+    card.append(el('div.sheet-scroll', {}, head, el('div.q-kind', { text: (en ? KIND_LABEL_EN : KIND_LABEL)[pick.type] }), prompt, trans, learnBox, feedback, body))
+    // EN to NL: the English word is read straight away.
+    if (en && pick.type === 'reverse') app.say(pick.q.word)
     return who
   }
 
-  function showLearn(learnBox: HTMLElement, q: Question, answer: string, label: string): void {
+  function showLearn(learnBox: HTMLElement, pick: Pick, answer: string, label: string): void {
+    const q = pick.q
     learnBox.replaceChildren(
       el('div.label', { text: label }),
-      markedWord(answer, q.word),
+      markedWord(answer, q.word, lang),
       el('div.def', { text: q.definition }),
     )
     learnBox.classList.remove('hidden')
-    app.say(`${q.word}. ${q.definition}`)
+    if (en) {
+      reveal()
+      sayAfter(pick)
+    } else app.say(`${q.word}. ${q.definition}`)
   }
 
   function fillGap(prompt: HTMLElement, q: Question): void {
     const gap = prompt.querySelector('.gap')
-    if (gap) gap.textContent = gapForm(q.word)
+    if (gap) gap.textContent = en ? gapFormFor(q.word, lang) : gapForm(q.word)
   }
 
   function choiceBody(pick: Pick, prompt: HTMLElement, feedback: HTMLElement, learnBox: HTMLElement): HTMLElement {
     const opts = pick.options!
-    const long = pick.type === 'reverse'
-    const wrap = el(`div.options${long ? '.long' : ''}`)
+    // English options for NL to EN and the gap; Dutch ones (school handwriting) for EN to NL.
+    const optLang = en ? (pick.type === 'reverse' ? '.nl' : '.en') : ''
+    const long = en ? opts.labels.some((l) => l.length > 26) : pick.type === 'reverse'
+    const wrap = el(`div.options${long ? '.long' : ''}${en ? '.big' : ''}`)
     let state: 'ask' | 'learn' | 'done' = 'ask'
     const buttons = opts.labels.map((label, i) =>
-      el('button.opt', {
+      el(`button.opt${optLang}`, {
         text: label,
         onclick: () => choose(i),
       }),
@@ -300,6 +360,8 @@ export function roundScreen(app: App, payload?: unknown): Screen {
           buttons.forEach((b, k) => k !== i && b.classList.add('dim'))
           if (pick.type === 'sentence') fillGap(prompt, pick.q)
           feedback.textContent = pickLine(currentAnimal.happy)
+          reveal()
+          sayAfter(pick)
           const items = record(pick.q, pick.type, 'correct')
           void celebrate(items, 'correct')
           void done()
@@ -312,7 +374,7 @@ export function roundScreen(app: App, payload?: unknown): Screen {
           app.audio.play('wrong')
           app.scene.catSurprised()
           app.scene.animalState('idle')
-          showLearn(learnBox, pick.q, '', 'Het goede antwoord is')
+          showLearn(learnBox, pick, '', 'Het goede antwoord is')
           feedback.textContent = ''
           wrap.before(el('p.note', { text: 'Tik nu op het goede antwoord.' }))
           updateTop()
@@ -347,9 +409,11 @@ export function roundScreen(app: App, payload?: unknown): Screen {
       autocapitalize: 'none',
       spellcheck: 'false',
       enterkeyhint: 'done',
-      placeholder: 'Typ hier...',
+      lang: en ? 'en' : 'nl',
+      placeholder: en ? 'Typ hier in het Engels...' : 'Typ hier...',
       'aria-label': 'Jouw antwoord',
     }) as HTMLInputElement
+    if (en) input.classList.add('en')
     const ok = el('button.btn.green', { type: 'submit' }, 'Klaar')
     const form = el('form.type-row', {}, input, ok)
     const hintBtn = el('button.btn.small.lila', { type: 'button' }, '💡 Hint')
@@ -367,7 +431,7 @@ export function roundScreen(app: App, payload?: unknown): Screen {
         hintBox.textContent = q.hint
       } else {
         hintBox.classList.add('letters')
-        hintBox.textContent = letterHint(q.word, hints === 1 ? 2 : 3)
+        hintBox.textContent = en ? letterHintEn(q.word, hints === 1 ? 1 : 2) : letterHint(q.word, hints === 1 ? 2 : 3)
       }
       hintBtn.textContent = hints >= 2 ? '💡 Geen hints meer' : '💡 Nog een hint'
       if (hints >= 2) hintBtn.setAttribute('disabled', 'true')
@@ -388,7 +452,7 @@ export function roundScreen(app: App, payload?: unknown): Screen {
         input.focus()
         return
       }
-      const check = checkTyped(value, q.word)
+      const check = checkTyped(value, q.word, lang)
       if (state === 'ask') {
         if (check.result === 'correct') {
           state = 'done'
@@ -397,6 +461,8 @@ export function roundScreen(app: App, payload?: unknown): Screen {
           input.blur()
           feedback.textContent = pickLine(currentAnimal.happy)
           hintRow.classList.add('hidden')
+          reveal()
+          sayAfter(pick)
           const items = record(q, 'type', outcome)
           void celebrate(items, outcome)
           void done()
@@ -410,17 +476,17 @@ export function roundScreen(app: App, payload?: unknown): Screen {
         if (outcome === 'almost') {
           app.audio.play('tap')
           app.scene.animalState('idle')
-          showLearn(learnBox, q, value, ALMOST_TEXT[check.reason ?? 'typo'])
+          showLearn(learnBox, pick, value, ALMOST_TEXT[check.reason ?? 'typo'])
           void app.flyRewards(items, invChip).then(updateTop)
         } else {
           app.audio.play('wrong')
           app.scene.catSurprised()
           app.scene.animalState('idle')
-          showLearn(learnBox, q, '', 'Het goede woord is')
+          showLearn(learnBox, pick, '', 'Het goede woord is')
         }
         feedback.textContent = ''
         input.value = ''
-        input.placeholder = 'Typ het goede woord'
+        input.placeholder = en ? 'Typ het goede Engels' : 'Typ het goede woord'
         updateTop()
         input.focus()
         return
