@@ -49,26 +49,30 @@ Toetsen in `src/content/toetsen/`, formaat van Kit Nugget Eiland zodat de engine
 
 ## Vraagsoorten (van makkelijk naar moeilijk)
 
-1. **NL naar EN, kiezen:** Nederlands groot in beeld, kies het Engels uit 4. Na het antwoord wordt het Engels voorgelezen.
-2. **EN naar NL, kiezen:** Engels groot in beeld (met luidsprekerknop, direct voorgelezen), kies het Nederlands uit 4.
-3. **Zin met gat:** Engelse zin met gat, kies het woord. Nederlandse vertaling van het woord klein eronder. Na het antwoord wordt de hele zin voorgelezen.
-4. **Typen:** Nederlands in beeld, typ het Engels. Hint 1 is de hint, hint 2 zijn de eerste letters. Bij typen wordt het Engels pas na het antwoord voorgelezen.
+Alleen **Engels naar Nederlands**. De vraag is altijd Engels (groot, rond schreefloos font, direct in het Engels voorgelezen); Wyne antwoordt altijd in het Nederlands.
 
-**Voorlezen:** alleen Engels, nooit Nederlands. De luidsprekerknop leest altijd het Engels: bij soort 1 en 4 pas na het antwoord, bij 2 en 3 direct.
+1. **EN naar NL, kiezen** (`reverse`): kies het Nederlands uit 4 (knoppen in Schoolschrift). Een woord krijgt dit tot het 2 keer goed is.
+2. **EN naar NL, typen** (`type`): typ het Nederlands. Hint 1 is de Engelse voorbeeldzin met het woord ingevuld (of "Het begint met een 'x'" als er geen zin is), hint 2 zijn de eerste letters van het (eerste) Nederlandse alternatief, hooguit de helft.
 
-**Antwoordcontrole voor Engels** (`engine/answer.ts`):
-- Alternatieven met "/": elk alternatief telt als goed ("mum" en "mother" bij "mum / mother"). Op de antwoordknoppen staat de volledige tekst.
-- Engels lidwoord "the", "a" of "an" ervoor of weglaten: altijd goed.
-- Niet meetellen: hoofdletters, punt, vraagteken, uitroepteken, komma, dubbele spaties.
-- Eén letter anders: "bijna goed", zoals bij de Nederlandse spelling.
-- De Nederlandse heuristieken (de/het, -en) gelden alleen voor `language: "nl"`. Engels: soort `sentence` (eindigt op . ? ! of heeft 4+ woorden), `phrase` (2 of 3 woorden), `word`.
-- Afleiders: zinnen bij zinnen, woorden bij woorden, zelfde soort als het antwoord.
+Kiezen tilt een woord hooguit naar box 3; box 4 en hoger verdien je met typen. Twee keer mis bij typen: één keer kiezen. Sterke woorden krijgen af en toe een keuzevraag. De vraagsoorten NL naar EN (`recognize`) en zin met gat (`sentence`) bestaan nog in de engine voor Nederlandse lijsten (`language: "nl"`, gedrag van Kit Nugget), maar worden voor Engelse lijsten nooit gekozen.
 
-**Korte zinnen:** typen is te zwaar. Alleen soort 1 en 2. "Geleerd" voor een zin: box 4 of hoger, en minstens 2 keer goed in beide richtingen met minstens 2 uur ertussen. Typen bestaat niet voor zinnen. Vastgelegd in `engine/words.ts`, met tests.
+**Voorlezen:** alleen Engels, nooit Nederlands. De luidsprekerknop leest altijd het Engels en werkt meteen. Na het antwoord wordt het Engels nog een keer voorgelezen. Bij fout licht het goede Nederlands zacht op, met het Engels klein eronder, en tikt of typt Wyne het alsnog.
+
+**Antwoordcontrole voor getypt Nederlands** (`checkDutchAnswer` in `engine/answer.ts`):
+- Alternatieven met "/" ("vrouw / echtgenote", "neven/nichten"): elk alternatief telt als goed, met of zonder spaties rond de "/". Op de knoppen staat de volledige tekst.
+- "de", "het" of "een" ervoor of weglaten: altijd goed.
+- Niet meetellen: hoofdletters, leestekens, "…", dubbele spaties ("zijn naam is" is goed bij "Zijn naam is …").
+- Eén letter anders (woorden van 4+ letters), een vergeten accent of een missende spatie: "bijna goed".
+- Soort van een item (op het Engels): `sentence` (eindigt op . ? !, bevat "…" of heeft 4+ woorden), `phrase` (2 of 3 woorden), `word`. Afleiders zijn Nederlandse vertalingen van items van dezelfde soort.
+- De Nederlandse regels van Kit Nugget (de/het, -en, `checkTyped`) gelden alleen voor `language: "nl"`.
+
+**Korte zinnen:** typen is te zwaar, dus alleen kiezen (EN naar NL). "Geleerd" voor een zin: box 4 of hoger, en minstens 2 keer goed met minstens 2 uur ertussen. Vastgelegd in `engine/words.ts` (`sentenceLearned`, `dirClean.reverse`), met tests.
+
+**Proeftoets:** Engels in beeld (en voorgelezen), typ het Nederlands; korte zinnen als keuzevraag. Geen hints, geen feedback per vraag.
 
 **Tempo voor een 7-jarige:** rondes van 10 vragen in plaats van 12. Knoppen minimaal 64 px. Antwoordtekst groter dan bij Viggo. Schoolschrift-font voor het Nederlands in beeld; Engelse woorden en zinnen in een rond schreefloos font (systeemfont), zoals in haar schoolboek.
 
-**Dieren:** dezelfde vijf, met zinnetjes in simpel Nederlands met "Katrien" ("Hoi Katrien! Weet jij hoe je dit in het Engels zegt?", "Kwak! Ken jij dit woord?").
+**Dieren:** dezelfde vijf, met zinnetjes in simpel Nederlands met "Katrien" ("Hoi Katrien! Wat betekent dit in het Nederlands?", "Kwak! Weet jij wat {woord} betekent?").
 
 **Aankleden:** hoedjes uit Kit Nugget plus de Rainbow Kitten-items (strik, kroon, feesthoed, cape alleen bij de sprite, muisje). Unlocks op geleerde woorden, rondes en dagen. Op het 3D-model alleen hoedjes en accessoires op de kop.
 

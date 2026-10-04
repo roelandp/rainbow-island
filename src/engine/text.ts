@@ -197,7 +197,7 @@ export function letterHintEn(word: string, shown = 2): string {
   return alternatives(word)
     .map((alt) => {
       const letters = [...alt].filter((ch) => ch !== ' ').length
-      const n = Math.min(shown, Math.max(1, Math.ceil(letters / 2)))
+      const n = Math.min(shown, Math.max(1, Math.floor(letters / 2)))
       let count = 0
       return [...alt]
         .map((ch) => {
@@ -244,4 +244,37 @@ export function gapSlot(sentence: string | undefined): GapSlot {
   if (['very', 'so', 'too', 'is', 'are', 'am'].includes(prev)) return 'adj'
   if (prev === '' && /^\s*___\s+(is|are)\b/i.test(sentence)) return 'noun'
   return 'other'
+}
+
+/** Dutch translation on an English list: lowercase, no punctuation or "…", single spaces. */
+export function normalizeNlAnswer(text: string): string {
+  return normalizeEn(text)
+}
+
+/** "de oma" -> "oma". The Dutch article (de, het, een) is optional for typed translations. */
+export function stripNlArticle(text: string): string {
+  return text.replace(/^(de|het|een|'t) (?=\S)/, '')
+}
+
+/** Letter hint for the first alternative only, never more than about half the word. */
+export function letterHintFirst(text: string, shown = 2): string {
+  return letterHintEn(alternatives(text)[0], shown)
+}
+
+/** The Dutch alternative the typed answer was closest to. */
+export function closestDutch(answer: string, text: string): string {
+  const alts = alternatives(text)
+  if (alts.length === 1) return text.trim()
+  const a = stripNlArticle(normalizeNlAnswer(answer))
+  if (a === '') return text.trim()
+  let best = alts[0]
+  let bestD = Infinity
+  for (const alt of alts) {
+    const d = editDistance(a, stripNlArticle(normalizeNlAnswer(alt)), 30)
+    if (d < bestD) {
+      bestD = d
+      best = alt
+    }
+  }
+  return best
 }

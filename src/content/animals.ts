@@ -20,7 +20,7 @@ export const ANIMALS: AnimalInfo[] = [
     id: 'eend',
     naam: 'Eend',
     ask: [
-      'Hoi Katrien! Weet jij hoe je dit in het Engels zegt?',
+      'Hoi Katrien! Weet jij wat dit betekent in het Nederlands?',
       'Kwak! Ken jij dit woord?',
       'Kwak kwak! Ik heb een Engels vraagje voor je.',
       'Hallo Katrien! Help je mij met Engels?',
@@ -56,7 +56,7 @@ export const ANIMALS: AnimalInfo[] = [
     id: 'schildpad',
     naam: 'Schildpad',
     ask: [
-      'Rustig aan... Hoi Katrien. Hoe zeg je dit in het Engels?',
+      'Rustig aan... Hoi Katrien. Wat betekent dit in het Nederlands?',
       'Hallo Katrien. Ken jij dit woord?',
       'Rustig aan... denk er maar even goed over na.',
       'Ik ben langzaam, maar ik leer ook Engels.',
@@ -92,7 +92,7 @@ export const ANIMALS: AnimalInfo[] = [
     id: 'uil',
     naam: 'Uil',
     ask: [
-      'Oehoe! Hoi Katrien. Weet jij hoe je dit in het Engels zegt?',
+      'Oehoe! Hoi Katrien. Weet jij wat dit betekent?',
       'Oehoe, ken jij dit woord?',
       'Hallo Katrien. Zullen we samen Engels oefenen?',
       'Oehoe! Ik las een Engels boek. Help je mij?',
@@ -128,7 +128,7 @@ export const ANIMALS: AnimalInfo[] = [
     id: 'konijn',
     naam: 'Konijn',
     ask: [
-      'Hoi hoi Katrien! Snel, hoe zeg je dit in het Engels?',
+      'Hoi hoi Katrien! Snel, wat betekent dit in het Nederlands?',
       'Hup, hier ben ik! Ken jij dit woord?',
       'Hallo Katrien! Ik roeide zo snel als ik kon!',
       'Hello! Doe je mee? Ik heb een leuke vraag!',
@@ -164,7 +164,7 @@ export const ANIMALS: AnimalInfo[] = [
     id: 'kikker',
     naam: 'Kikker',
     ask: [
-      'Kwaak! Hoi Katrien! Weet jij hoe je dit in het Engels zegt?',
+      'Kwaak! Hoi Katrien! Weet jij wat dit betekent?',
       'Kwaak kwaak! Ken jij dit woord?',
       'Hallo Katrien! Ik sprong van blad naar blad hierheen.',
       'Kwaak! Help je mij even met Engels?',
@@ -201,7 +201,7 @@ export const ANIMALS: AnimalInfo[] = [
     naam: 'Ollie',
     ask: [
       'Toet toet! Ik ben Ollie de olifant. Hoi Katrien!',
-      'Ollie wil het weten: hoe zeg je dit in het Engels?',
+      'Ollie wil het weten: wat betekent dit in het Nederlands?',
       'Hoi Katrien! Ollie heeft een Engels vraagje.',
       'Toet! Help je Ollie even met Engels?',
     ],

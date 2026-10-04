@@ -127,15 +127,17 @@ export function isDue(s: WordState, now: number, msToTest: number | null): boole
 /** Right answers needed per direction (spaced) before a short sentence counts as learned. */
 export const SENTENCE_DIR_NEEDED = 2
 
-/** A short sentence is learned from both directions, since it is never typed. */
+/**
+ * A short sentence is never typed: it is learned at box 4+ with two right
+ * EN to NL answers at least SPACING_MS apart.
+ */
 export function sentenceLearned(s: WordState): boolean {
-  return s.box >= 4 && s.dirClean.recognize >= SENTENCE_DIR_NEEDED && s.dirClean.reverse >= SENTENCE_DIR_NEEDED
+  return s.box >= 4 && s.dirClean.reverse >= SENTENCE_DIR_NEEDED
 }
 
 /**
  * Words: box 4+ and typed right twice (spaced). Short sentences: box 4+ and right
- * twice in both directions (spaced). `dirClean` only grows for sentences, so this
- * needs no flag.
+ * twice EN to NL (spaced). `dirClean` only grows for sentences, so this needs no flag.
  */
 export function statusOf(s: WordState): WordStatus {
   if (s.seen === 0) return 'nieuw'
@@ -151,20 +153,32 @@ export function statusOf(s: WordState): WordStatus {
  * variety on words that are already strong. After two misses in a row while
  * typing, one easier question helps to get the word back.
  */
-export function typeFor(s: WordState, hasSentence: boolean, roll: number, isSentence = false): QuestionType {
+export function typeFor(s: WordState, hasSentence: boolean, roll: number): QuestionType {
   if (s.right.recognize < 1) return 'recognize'
   if (s.right.reverse < 1) return 'reverse'
-  if (isSentence) {
-    // Short sentences: only the two choice questions; the weaker direction first.
-    if (s.dirClean.recognize !== s.dirClean.reverse) return s.dirClean.recognize < s.dirClean.reverse ? 'recognize' : 'reverse'
-    return roll < 0.5 ? 'recognize' : 'reverse'
-  }
   if (hasSentence && s.right.sentence < 1) return 'sentence'
   if (s.wrongStreak >= 2) return hasSentence ? 'sentence' : 'recognize'
   if (s.box >= 4 && s.typedClean >= 2 && roll < 0.25) {
     const pool: QuestionType[] = hasSentence ? ['reverse', 'sentence'] : ['reverse']
     return pool[Math.floor((roll / 0.25) * pool.length)]
   }
+  return 'type'
+}
+
+/** Right EN to NL choices before an English word is typed (in Dutch). */
+export const EN_CHOICE_STEPS = 2
+
+/**
+ * English lists: the question is always English, the answer always Dutch.
+ * Choose the Dutch (EN_CHOICE_STEPS right answers), then type the Dutch. Short
+ * sentences are only ever chosen. Two misses in a row while typing: one choice
+ * question to get the word back; strong words now and then get a choice for variety.
+ */
+export function typeForEn(s: WordState, isSentence: boolean, roll: number): QuestionType {
+  if (isSentence) return 'reverse'
+  if (s.right.type === 0 && s.right.reverse < EN_CHOICE_STEPS) return 'reverse'
+  if (s.wrongStreak >= 2) return 'reverse'
+  if (s.box >= 4 && s.typedClean >= 2 && roll < 0.2) return 'reverse'
   return 'type'
 }
 
@@ -210,7 +224,7 @@ export function applyAnswer(
     } else if (outcome === 'correct' && isSentence) {
       const spacedBox = prev.lastSeen === 0 || now - prev.lastSeen >= SPACING_MS
       if (s.box < 3 || spacedBox) s.box = Math.min(MAX_BOX, s.box + 1) as Box
-      if (type === 'recognize' || type === 'reverse') {
+      if (type === 'reverse' || type === 'recognize') {
         const at = prev.dirAt[type]
         if (prev.dirClean[type] === 0 || now - at >= SPACING_MS) {
           s.dirClean[type]++

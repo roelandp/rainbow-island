@@ -2,10 +2,10 @@ import type { App, Screen } from '../app'
 import { animalById } from '../content/animals'
 import type { ItemId } from '../content/blocks'
 import type { Question } from '../content/types'
-import { checkTyped, type AlmostReason } from '../engine/answer'
+import { checkDutchAnswer, checkTyped, type AlmostReason } from '../engine/answer'
 import type { Pick } from '../engine/engine'
 import { makeRng } from '../engine/rng'
-import { alternatives, closestAlternative, diffMarks, gapForm, gapFormFor, letterHint, letterHintEn, splitArticle, type Lang } from '../engine/text'
+import { alternatives, closestDutch, diffMarks, gapForm, letterHint, letterHintFirst, splitArticle, stripNlArticle, type Lang } from '../engine/text'
 import type { Outcome } from '../engine/words'
 import { finishRound } from '../game/day'
 import { addItems, nextStreak, rewardFor } from '../game/rewards'
@@ -33,11 +33,12 @@ const KIND_LABEL: Record<Pick['type'], string> = {
   type: 'Typ het woord dat hierbij hoort',
 }
 
+/** English lists only ask English to Dutch: choose the Dutch or type it. */
 const KIND_LABEL_EN: Record<Pick['type'], string> = {
-  recognize: 'Hoe zeg je dit in het Engels?',
+  recognize: 'Wat betekent dit?',
   reverse: 'Wat betekent dit?',
-  sentence: 'Welk woord past in de zin?',
-  type: 'Typ het in het Engels',
+  sentence: 'Wat betekent dit?',
+  type: 'Typ het in het Nederlands',
 }
 
 /** The gap sentence with the word filled in, for reading aloud (first alternative only). */
@@ -54,11 +55,11 @@ function pickLine(lines: string[], word?: string): string {
   return line.replace('{woord}', word ? `"${word}"` : 'dit woord')
 }
 
-/** The correct word with the letters that went wrong highlighted. */
+/** The correct word with the letters that went wrong highlighted. English lists: `word` is the Dutch translation. */
 export function markedWord(answer: string, word: string, lang: Lang = 'nl'): HTMLElement {
   if (lang === 'en') {
-    const wrap = el('div.answer.en')
-    const target = answer.trim() ? closestAlternative(answer, word) : word
+    const wrap = el('div.answer')
+    const target = answer.trim() ? closestDutch(stripNlArticle(answer.trim().toLowerCase()), word) : word
     const marks = answer.trim() ? diffMarks(answer.trim(), target) : [...target].map((ch) => ({ ch, ok: true }))
     for (const m of marks) {
       if (m.ok) wrap.appendChild(document.createTextNode(m.ch))
@@ -223,8 +224,8 @@ export function roundScreen(app: App, payload?: unknown): Screen {
     const pick = engine.next()
     const animal = animalById(app.nextAnimal())
     currentAnimal = animal
-    // Only name the English word when it is on screen anyway (EN to NL).
-    const line = pick.type === 'reverse' ? pickLine(animal.askWord, pick.q.word) : pickLine(animal.ask)
+    // English lists always show the English, so the line may name it.
+    const line = en || pick.type === 'reverse' ? pickLine(animal.askWord, pick.q.word) : pickLine(animal.ask)
     const who = showQuestion(pick, `${animal.naam} komt eraan...`)
     const my = ++seq
     answered = false
@@ -257,11 +258,12 @@ export function roundScreen(app: App, payload?: unknown): Screen {
 
   function promptFor(pick: Pick): HTMLElement {
     const q = pick.q
-    const enCls = en ? '.en' : ''
-    if (pick.type === 'reverse') return el(`div.q-prompt${en && engine.isSentence(q.word) ? lengthClass(q.word) : '.word'}${enCls}`, { text: q.word })
+    // English lists: always the English, big, in the rounded font.
+    if (en) return el(`div.q-prompt${engine.isSentence(q.word) ? lengthClass(q.word) : '.word'}.en`, { text: q.word })
+    if (pick.type === 'reverse') return el('div.q-prompt.word', { text: q.word })
     if (pick.type === 'sentence' && q.sentence) {
       const [a, b] = q.sentence.split('___')
-      return el(`div.q-prompt${lengthClass(q.sentence)}${enCls}`, { html: `${escapeHtml(a)}<span class="gap">&nbsp;</span>${escapeHtml(b ?? '')}` })
+      return el(`div.q-prompt${lengthClass(q.sentence)}`, { html: `${escapeHtml(a)}<span class="gap">&nbsp;</span>${escapeHtml(b ?? '')}` })
     }
     return el(`div.q-prompt${lengthClass(q.definition)}`, { text: q.definition })
   }
@@ -271,73 +273,54 @@ export function roundScreen(app: App, payload?: unknown): Screen {
   }
 
   /** What the speaker button reads. English lists: always the English, never Dutch. */
-  function speakTextFor(pick: Pick, answeredNow: boolean): string {
-    if (en) {
-      if (pick.type === 'sentence' && pick.q.sentence) return answeredNow ? filledSentence(pick.q) : pick.q.sentence
-      return pick.q.word
-    }
+  function speakTextFor(pick: Pick): string {
+    if (en) return pick.q.word
     if (pick.type === 'reverse') return pick.q.word
     if (pick.type === 'sentence' && pick.q.sentence) return pick.q.sentence.replace('___', '... hm ...')
     return pick.q.definition
   }
 
-  /** English read aloud after an answer: the word, or the whole sentence for a gap question. */
+  /** English lists: the English is read again after every answer (never the Dutch). */
   function sayAfter(pick: Pick): void {
-    if (!en) return
-    app.say(pick.type === 'sentence' && pick.q.sentence ? filledSentence(pick.q) : pick.q.word)
-  }
-
-  /** The speaker button of the current question; hidden until answered for NL to EN and typing. */
-  let speaker: HTMLElement | null = null
-  let revealed = false
-
-  function reveal(): void {
-    revealed = true
-    speaker?.classList.remove('hidden')
+    if (en) app.say(pick.q.word)
   }
 
   function showQuestion(pick: Pick, intro: string): HTMLElement {
     card.replaceChildren()
-    revealed = false
     const who = el('div.q-who', { text: intro })
-    speaker = speakButton(app, () => speakTextFor(pick, revealed))
-    // Reading the English out loud before answering would give it away.
-    if (en && (pick.type === 'recognize' || pick.type === 'type')) speaker.classList.add('hidden')
-    const head = el('div.q-head', {}, who, speaker)
+    const head = el('div.q-head', {}, who, speakButton(app, () => speakTextFor(pick)))
     const prompt = promptFor(pick)
-    const trans = en && pick.type === 'sentence' ? el('div.q-trans', { text: pick.q.definition }) : null
     const feedback = el('div.feedback')
     const learnBox = el('div.learn.hidden')
     const body = pick.type === 'type' ? typeBody(pick, feedback, learnBox) : choiceBody(pick, prompt, feedback, learnBox)
-    card.append(el('div.sheet-scroll', {}, head, el('div.q-kind', { text: (en ? KIND_LABEL_EN : KIND_LABEL)[pick.type] }), prompt, trans, learnBox, feedback, body))
-    // EN to NL: the English word is read straight away.
-    if (en && pick.type === 'reverse') app.say(pick.q.word)
+    card.append(el('div.sheet-scroll', {}, head, el('div.q-kind', { text: (en ? KIND_LABEL_EN : KIND_LABEL)[pick.type] }), prompt, learnBox, feedback, body))
+    // English lists: the English is read straight away.
+    if (en) app.say(pick.q.word)
     return who
   }
 
   function showLearn(learnBox: HTMLElement, pick: Pick, answer: string, label: string): void {
     const q = pick.q
+    // English lists: the Dutch answer big (school handwriting), the English small under it.
     learnBox.replaceChildren(
       el('div.label', { text: label }),
-      markedWord(answer, q.word, lang),
-      el('div.def', { text: q.definition }),
+      en ? markedWord(answer, q.definition, lang) : markedWord(answer, q.word, lang),
+      en ? el('div.def.en', { text: q.word }) : el('div.def', { text: q.definition }),
     )
     learnBox.classList.remove('hidden')
-    if (en) {
-      reveal()
-      sayAfter(pick)
-    } else app.say(`${q.word}. ${q.definition}`)
+    if (en) sayAfter(pick)
+    else app.say(`${q.word}. ${q.definition}`)
   }
 
   function fillGap(prompt: HTMLElement, q: Question): void {
     const gap = prompt.querySelector('.gap')
-    if (gap) gap.textContent = en ? gapFormFor(q.word, lang) : gapForm(q.word)
+    if (gap) gap.textContent = gapForm(q.word)
   }
 
   function choiceBody(pick: Pick, prompt: HTMLElement, feedback: HTMLElement, learnBox: HTMLElement): HTMLElement {
     const opts = pick.options!
-    // English options for NL to EN and the gap; Dutch ones (school handwriting) for EN to NL.
-    const optLang = en ? (pick.type === 'reverse' ? '.nl' : '.en') : ''
+    // English lists: the options are Dutch, in school handwriting.
+    const optLang = en ? '.nl' : ''
     const long = en ? opts.labels.some((l) => l.length > 26) : pick.type === 'reverse'
     const wrap = el(`div.options${long ? '.long' : ''}${en ? '.big' : ''}`)
     let state: 'ask' | 'learn' | 'done' = 'ask'
@@ -360,7 +343,6 @@ export function roundScreen(app: App, payload?: unknown): Screen {
           buttons.forEach((b, k) => k !== i && b.classList.add('dim'))
           if (pick.type === 'sentence') fillGap(prompt, pick.q)
           feedback.textContent = pickLine(currentAnimal.happy)
-          reveal()
           sayAfter(pick)
           const items = record(pick.q, pick.type, 'correct')
           void celebrate(items, 'correct')
@@ -409,11 +391,10 @@ export function roundScreen(app: App, payload?: unknown): Screen {
       autocapitalize: 'none',
       spellcheck: 'false',
       enterkeyhint: 'done',
-      lang: en ? 'en' : 'nl',
-      placeholder: en ? 'Typ hier in het Engels...' : 'Typ hier...',
+      lang: 'nl',
+      placeholder: en ? 'Typ het Nederlands...' : 'Typ hier...',
       'aria-label': 'Jouw antwoord',
     }) as HTMLInputElement
-    if (en) input.classList.add('en')
     const ok = el('button.btn.green', { type: 'submit' }, 'Klaar')
     const form = el('form.type-row', {}, input, ok)
     const hintBtn = el('button.btn.small.lila', { type: 'button' }, '💡 Hint')
@@ -427,11 +408,21 @@ export function roundScreen(app: App, payload?: unknown): Screen {
       hints++
       app.audio.play('tap')
       hintBox.classList.remove('hidden')
-      if (hints === 1 && q.hint) {
+      if (hints === 1 && en) {
+        // English lists, hint 1: the English example sentence, or the first Dutch letter.
+        if (q.sentence) {
+          hintBox.classList.add('en')
+          hintBox.textContent = filledSentence(q)
+        } else {
+          const first = [...stripNlArticle(alternatives(q.definition)[0].toLowerCase())][0] ?? ''
+          hintBox.textContent = `Het begint met een '${first}'`
+        }
+      } else if (hints === 1 && q.hint) {
         hintBox.textContent = q.hint
       } else {
+        hintBox.classList.remove('en')
         hintBox.classList.add('letters')
-        hintBox.textContent = en ? letterHintEn(q.word, hints === 1 ? 1 : 2) : letterHint(q.word, hints === 1 ? 2 : 3)
+        hintBox.textContent = en ? letterHintFirst(q.definition, 2) : letterHint(q.word, hints === 1 ? 2 : 3)
       }
       hintBtn.textContent = hints >= 2 ? '💡 Geen hints meer' : '💡 Nog een hint'
       if (hints >= 2) hintBtn.setAttribute('disabled', 'true')
@@ -452,7 +443,7 @@ export function roundScreen(app: App, payload?: unknown): Screen {
         input.focus()
         return
       }
-      const check = checkTyped(value, q.word, lang)
+      const check = en ? checkDutchAnswer(value, q.definition) : checkTyped(value, q.word)
       if (state === 'ask') {
         if (check.result === 'correct') {
           state = 'done'
@@ -461,7 +452,6 @@ export function roundScreen(app: App, payload?: unknown): Screen {
           input.blur()
           feedback.textContent = pickLine(currentAnimal.happy)
           hintRow.classList.add('hidden')
-          reveal()
           sayAfter(pick)
           const items = record(q, 'type', outcome)
           void celebrate(items, outcome)
@@ -486,7 +476,7 @@ export function roundScreen(app: App, payload?: unknown): Screen {
         }
         feedback.textContent = ''
         input.value = ''
-        input.placeholder = en ? 'Typ het goede Engels' : 'Typ het goede woord'
+        input.placeholder = en ? 'Typ het goede Nederlands' : 'Typ het goede woord'
         updateTop()
         input.focus()
         return

@@ -1,4 +1,4 @@
-import { ARTICLES, alternatives, editDistance, normalize, normalizeEn, splitArticle, stripAccents, stripEnArticle, wordKind, type Lang } from './text'
+import { ARTICLES, alternatives, editDistance, normalize, normalizeEn, normalizeNlAnswer, splitArticle, stripAccents, stripEnArticle, stripNlArticle, wordKind, type Lang } from './text'
 
 export type TypedResult = 'correct' | 'almost' | 'wrong'
 /** Why an answer was only "almost": wrong article, missing accent or one letter off. */
@@ -73,6 +73,30 @@ export function checkTypedEn(input: string, word: string): TypedCheck {
   for (const target of accepted) {
     if (target.replace(/ /g, '').length >= 4 && editDistance(answer, target, 1) <= 1) return { result: 'almost', reason: 'typo' }
     if (target.includes(' ') && answer.replace(/ /g, '') === target.replace(/ /g, '')) return { result: 'almost', reason: 'typo' }
+  }
+  return { result: 'wrong' }
+}
+
+/**
+ * A typed Dutch translation on an English list ("vrouw / echtgenote"): every
+ * alternative is right, with or without spaces around "/"; de, het or een in
+ * front is optional; case, punctuation, "…" and double spaces never matter.
+ * A missing accent, one letter off (4+ letters) or a missing space or hyphen is "almost".
+ */
+export function checkDutchAnswer(input: string, definition: string): TypedCheck {
+  const clean = (t: string) => stripNlArticle(normalizeNlAnswer(t))
+  const answer = clean(input)
+  if (answer === '') return { result: 'wrong' }
+  const accepted = alternatives(definition).map(clean).filter((a) => a !== '')
+  if (accepted.includes(answer)) return { result: 'correct' }
+  const slash = (t: string) => t.replace(/\s*\/\s*/g, '/')
+  if (definition.includes('/') && slash(answer) === slash(clean(definition))) return { result: 'correct' }
+  const plainAnswer = stripAccents(answer)
+  for (const target of accepted) {
+    const plain = stripAccents(target)
+    if (plain === plainAnswer) return { result: 'almost', reason: 'accent' }
+    if (plain.replace(/[ -]/g, '').length >= 4 && editDistance(plainAnswer, plain, 1) <= 1) return { result: 'almost', reason: 'typo' }
+    if (/[ -]/.test(plain) && plainAnswer.replace(/[ -]/g, '') === plain.replace(/[ -]/g, '')) return { result: 'almost', reason: 'typo' }
   }
   return { result: 'wrong' }
 }

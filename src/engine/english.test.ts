@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { TOETSEN, parseToetsen } from '../content'
 import type { Question, Toets } from '../content/types'
-import { checkTyped } from './answer'
+import { checkDutchAnswer, checkTyped } from './answer'
 import { buildOptions, pickDistractors } from './distractors'
 import { WordEngine } from './engine'
 import { makeRng } from './rng'
-import { closestAlternative, englishKind, gapSlot, letterHintEn } from './text'
-import { applyAnswer, emptyState, reviveState, statusOf, typeFor } from './words'
+import { closestAlternative, closestDutch, englishKind, gapSlot, letterHintEn, letterHintFirst } from './text'
+import { applyAnswer, emptyState, reviveState, statusOf, typeForEn } from './words'
 
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
@@ -70,8 +70,51 @@ describe('English answer check', () => {
   it('shows the closest alternative and safe letter hints', () => {
     expect(closestAlternative('mothr', 'mum / mother')).toBe('mother')
     expect(closestAlternative('mun', 'mum / mother')).toBe('mum')
-    expect(letterHintEn('mum / mother', 2)).toBe('m u _  /  m o _ _ _ _')
+    expect(letterHintEn('mum / mother', 2)).toBe('m _ _  /  m o _ _ _ _')
     expect(letterHintEn('brother', 1)).toBe('b _ _ _ _ _ _')
+  })
+})
+
+describe('typed Dutch answers on an English list', () => {
+  it('accepts every alternative, with or without spaces around the slash', () => {
+    expect(checkDutchAnswer('vrouw', 'vrouw / echtgenote').result).toBe('correct')
+    expect(checkDutchAnswer('echtgenote', 'vrouw / echtgenote').result).toBe('correct')
+    expect(checkDutchAnswer('neef', 'neef / nicht').result).toBe('correct')
+    expect(checkDutchAnswer('nichten', 'neven/nichten').result).toBe('correct')
+    expect(checkDutchAnswer('neven', 'neven/nichten').result).toBe('correct')
+    expect(checkDutchAnswer('oma/grootmoeder', 'oma / grootmoeder').result).toBe('correct')
+    expect(checkDutchAnswer('opa', 'oma / grootmoeder').result).toBe('wrong')
+  })
+
+  it('makes de, het and een optional', () => {
+    expect(checkDutchAnswer('de moeder', 'moeder').result).toBe('correct')
+    expect(checkDutchAnswer('het boek', 'boek').result).toBe('correct')
+    expect(checkDutchAnswer('een zwembad', 'zwembad').result).toBe('correct')
+    expect(checkDutchAnswer('stamboom', 'de stamboom').result).toBe('correct')
+  })
+
+  it('ignores case, punctuation, the ellipsis and double spaces', () => {
+    expect(checkDutchAnswer('zijn naam is', 'Zijn naam is …').result).toBe('correct')
+    expect(checkDutchAnswer('Zijn  naam is...', 'Zijn naam is …').result).toBe('correct')
+    expect(checkDutchAnswer('  Moeder! ', 'moeder').result).toBe('correct')
+    expect(checkDutchAnswer('wie is dit', 'Wie is dit?').result).toBe('correct')
+    expect(checkDutchAnswer('TV kijken', 'tv kijken').result).toBe('correct')
+  })
+
+  it('calls one letter off almost (4+ letters), else wrong', () => {
+    expect(checkDutchAnswer('moder', 'moeder')).toEqual({ result: 'almost', reason: 'typo' })
+    expect(checkDutchAnswer('echtgenoote', 'vrouw / echtgenote')).toEqual({ result: 'almost', reason: 'typo' })
+    expect(checkDutchAnswer('tvkijken', 'tv kijken')).toEqual({ result: 'almost', reason: 'typo' })
+    expect(checkDutchAnswer('oon', 'oom').result).toBe('wrong')
+    expect(checkDutchAnswer('mdr', 'moeder').result).toBe('wrong')
+    expect(checkDutchAnswer('', 'moeder').result).toBe('wrong')
+  })
+
+  it('hints and the shown answer use the Dutch alternatives', () => {
+    expect(letterHintFirst('oma / grootmoeder', 2)).toBe('o _ _')
+    expect(letterHintFirst('moeder', 2)).toBe('m o _ _ _ _')
+    expect(closestDutch('grootmoder', 'oma / grootmoeder')).toBe('grootmoeder')
+    expect(closestDutch('', 'oma / grootmoeder')).toBe('oma / grootmoeder')
   })
 })
 
@@ -128,61 +171,106 @@ describe('English kinds and distractors', () => {
   })
 })
 
+describe('English lists: only English to Dutch', () => {
+  const t0 = new Date('2026-10-05T10:00:00').getTime()
+
+  function run(seed: number, n: number, check: (e: WordEngine, p: ReturnType<WordEngine['next']>) => void) {
+    let now = t0
+    const e = new WordEngine({ toets, seed, now: () => now })
+    const rng = makeRng(seed)
+    for (let i = 0; i < n; i++) {
+      const p = e.next()
+      check(e, p)
+      e.record(p.q.word, p.type, rng.next() < 0.8 ? 'correct' : 'wrong')
+      now += i % 10 === 9 ? 5 * HOUR : 20_000
+    }
+    return e
+  }
+
+  it('asks only EN to NL choice or typing the Dutch; short sentences only choice', () => {
+    const seen = new Set<string>()
+    run(3, 600, (e, p) => {
+      seen.add(p.type)
+      expect(['reverse', 'type']).toContain(p.type)
+      if (e.isSentence(p.q.word)) expect(p.type).toBe('reverse')
+      if (p.type === 'reverse') {
+        // Dutch options: the right one is the definition
+        expect(p.options!.labels[p.options!.answer]).toBe(p.q.definition)
+      } else expect(p.options).toBeNull()
+    })
+    expect(seen).toEqual(new Set(['reverse', 'type']))
+  })
+
+  it('chooses the Dutch twice before typing it, and forced types still fit', () => {
+    let s = emptyState()
+    expect(typeForEn(s, false, 0.5)).toBe('reverse')
+    s = applyAnswer(s, 'reverse', 'correct', t0, null)
+    expect(typeForEn(s, false, 0.5)).toBe('reverse')
+    s = applyAnswer(s, 'reverse', 'correct', t0 + HOUR, null)
+    expect(typeForEn(s, false, 0.5)).toBe('type')
+    expect(s.box).toBe(2)
+    s = applyAnswer(s, 'type', 'correct', t0 + 2 * HOUR, null)
+    expect(s.box).toBe(4) // typing earns the top boxes
+    s = applyAnswer(s, 'type', 'wrong', t0 + 3 * HOUR, null)
+    s = applyAnswer(s, 'type', 'wrong', t0 + 3 * HOUR, null)
+    expect(typeForEn(s, false, 0.5)).toBe('reverse') // two misses: one easier question
+    expect(typeForEn(emptyState(), true, 0.5)).toBe('reverse')
+    const e = new WordEngine({ toets, seed: 1, now: () => t0 })
+    expect(e.make(fixture[11], 'fallback', 'type').type).toBe('reverse')
+    expect(e.make(fixture[0], 'fallback', 'recognize').type).toBe('reverse')
+    expect(e.make(fixture[0], 'fallback', 'sentence').type).toBe('reverse')
+    expect(e.make(fixture[0], 'fallback', 'type').type).toBe('type')
+  })
+
+  it('choice alone never makes a word learned', () => {
+    let s = emptyState()
+    for (let i = 0; i < 6; i++) s = applyAnswer(s, 'reverse', 'correct', t0 + i * DAY, null)
+    expect(s.box).toBe(3)
+    expect(statusOf(s)).toBe('bijna')
+  })
+})
+
 describe('short sentences', () => {
   const t0 = new Date('2026-10-05T10:00:00').getTime()
 
-  it('only get NL to EN and EN to NL, never typing or a gap', () => {
-    const { e, tick } = (() => {
-      let now = t0
-      return { e: new WordEngine({ toets, seed: 3, now: () => now }), tick: (ms: number) => (now += ms) }
-    })()
-    const rng = makeRng(1)
-    for (let i = 0; i < 600; i++) {
-      const p = e.next()
-      if (e.isSentence(p.q.word)) expect(['recognize', 'reverse']).toContain(p.type)
-      else if (!p.q.sentence) expect(p.type).not.toBe('sentence')
-      e.record(p.q.word, p.type, rng.next() < 0.8 ? 'correct' : 'wrong')
-      tick(i % 10 === 9 ? 5 * HOUR : 20_000)
-    }
-    // forcing typing on a sentence still gives a choice question
-    expect(e.make(fixture[11], 'fallback', 'type').type).toBe('recognize')
-    expect(typeFor(applyAnswer(applyAnswer(emptyState(), 'recognize', 'correct', t0, null, true), 'reverse', 'correct', t0, null, true), false, 0.9, true)).not.toBe('type')
-  })
-
-  it('are learned only at box 4+ with 2 spaced right answers in each direction', () => {
+  it('are learned at box 4+ with 2 right EN to NL answers at least 2 hours apart', () => {
     let s = emptyState()
     let now = t0
-    const answer = (type: 'recognize' | 'reverse', gap: number) => {
+    const answer = (gap: number) => {
       now += gap
-      s = applyAnswer(s, type, 'correct', now, null, true)
+      s = applyAnswer(s, 'reverse', 'correct', now, null, true)
     }
-    answer('recognize', 0)
-    answer('reverse', 60_000)
-    answer('recognize', 60_000) // same sitting: does not count again
-    answer('reverse', 60_000)
-    expect(s.dirClean).toEqual({ recognize: 1, reverse: 1 })
+    answer(0)
+    answer(60_000) // same sitting: does not count again
+    answer(60_000)
+    expect(s.dirClean.reverse).toBe(1)
+    expect(s.box).toBe(3)
     expect(statusOf(s)).toBe('bijna')
-    answer('recognize', 3 * HOUR)
-    expect(s.dirClean.recognize).toBe(2)
-    expect(s.box).toBeGreaterThanOrEqual(4)
-    expect(statusOf(s)).not.toBe('geleerd') // EN to NL only once
-    answer('reverse', 30 * 60_000) // 3.5 hours after the last EN to NL: counts
+    answer(3 * HOUR)
     expect(s.dirClean.reverse).toBe(2)
+    expect(s.box).toBe(4)
     expect(statusOf(s)).toBe('geleerd')
   })
 
-  it('needs 2 hours between the right answers of one direction', () => {
+  it('needs 2 hours between the right answers, and box 4+', () => {
     let s = emptyState()
     s = applyAnswer(s, 'reverse', 'correct', t0, null, true)
     s = applyAnswer(s, 'reverse', 'correct', t0 + HOUR, null, true)
     expect(s.dirClean.reverse).toBe(1)
     s = applyAnswer(s, 'reverse', 'correct', t0 + 2 * HOUR, null, true)
     expect(s.dirClean.reverse).toBe(2)
-    // Box 4+ alone is not enough
-    const high = { ...emptyState(), seen: 6, box: 5 as const, dirClean: { recognize: 2, reverse: 1 } }
+    expect(statusOf(s)).toBe('bijna') // box 3 only
+    const high = { ...emptyState(), seen: 6, box: 5 as const, dirClean: { recognize: 0, reverse: 1 } }
     expect(statusOf(high)).toBe('bijna')
-    expect(statusOf({ ...high, dirClean: { recognize: 2, reverse: 2 } })).toBe('geleerd')
-    expect(statusOf({ ...high, box: 3 as const, dirClean: { recognize: 2, reverse: 2 } })).toBe('bijna')
+    expect(statusOf({ ...high, dirClean: { recognize: 0, reverse: 2 } })).toBe('geleerd')
+    expect(statusOf({ ...high, box: 3 as const, dirClean: { recognize: 0, reverse: 2 } })).toBe('bijna')
+  })
+
+  it('a wrong answer sends a sentence back to box 1', () => {
+    let s = applyAnswer(emptyState(), 'reverse', 'correct', t0, null, true)
+    s = applyAnswer(s, 'reverse', 'wrong', t0 + 60_000, null, true)
+    expect(s.box).toBe(1)
+    expect(s.retryIn).toBe(2)
   })
 
   it('normal words never collect direction counts', () => {
@@ -209,7 +297,8 @@ describe('the real English list', () => {
         for (let round = 0; round < 2; round++) {
           for (let i = 0; i < 10; i++) {
             const p = e.next()
-            if (e.isSentence(p.q.word)) expect(['recognize', 'reverse']).toContain(p.type)
+            if (e.isSentence(p.q.word)) expect(p.type).toBe('reverse')
+            else expect(['reverse', 'type']).toContain(p.type)
             if (p.options) {
               expect(new Set(p.options.labels).size).toBe(p.options.labels.length)
               expect(p.options.labels.length).toBe(4)

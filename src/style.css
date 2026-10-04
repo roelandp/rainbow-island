@@ -1576,3 +1576,44 @@ input {
   font-family: var(--font-en);
   font-weight: 800;
 }
+
+/* ---------- fixes from the layout check (scripts/screenshots.mjs) ---------- */
+
+/* Long item names ("Regenboogblok", "Kasteeltorentje") stayed wider than the 84px build slot. */
+.slot .name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+/* The placeholder was cut off mid-word on a phone ("Typ hier in het E"). */
+.type-input {
+  text-overflow: ellipsis;
+}
+.type-input::placeholder {
+  font-size: 0.8em;
+}
+
+@media (max-width: 480px) {
+  .type-input::placeholder {
+    font-size: 17px;
+  }
+  /* The result loot (up to ten chips) pushed the buttons out of view on a phone. */
+  .loot {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .loot span {
+    padding: 4px 10px;
+    font-size: 15px;
+  }
+}
+
+/* English example sentence as a hint, and the English under a shown Dutch answer. */
+.hint-box.en:not(.letters),
+.learn .def.en {
+  font-family: var(--font-en);
+  font-weight: 800;
+  letter-spacing: 0;
+  font-feature-settings: normal;
+}

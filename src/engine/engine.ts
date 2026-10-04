@@ -9,6 +9,7 @@ import {
   reviveState,
   statusOf,
   typeFor,
+  typeForEn,
   type Outcome,
   type QuestionType,
   type WordState,
@@ -187,10 +188,15 @@ export class WordEngine {
   make(q: Question, reason: PickReason, forceType?: QuestionType): Pick {
     const s = this.state(q.word)
     const sentenceItem = this.isSentence(q.word)
-    let type = forceType ?? typeFor(s, Boolean(q.sentence) && !sentenceItem, this.rng.next(), sentenceItem)
-    // Typing and gap questions never happen for a short sentence; a gap needs a sentence.
-    if (sentenceItem && (type === 'type' || type === 'sentence')) type = 'recognize'
-    if (type === 'sentence' && !q.sentence) type = 'recognize'
+    let type: QuestionType
+    if (this.lang === 'en') {
+      // English lists: only EN to NL. Choose the Dutch, or type it (never for short sentences).
+      type = forceType ?? typeForEn(s, sentenceItem, this.rng.next())
+      if (type !== 'type' || sentenceItem) type = 'reverse'
+    } else {
+      type = forceType ?? typeFor(s, Boolean(q.sentence), this.rng.next())
+      if (type === 'sentence' && !q.sentence) type = 'recognize'
+    }
     let options: Options | null = null
     if (type === 'recognize') options = buildOptions(q, this.questions, this.rng, 'word', 4, this.lang)
     else if (type === 'reverse') options = buildOptions(q, this.questions, this.rng, 'definition', 4, this.lang)
