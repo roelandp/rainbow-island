@@ -39,6 +39,10 @@ export interface EngineOptions {
 const DEFAULT_MIX = { due: 0.6, fresh: 0.25, known: 0.15 }
 /** Rolling distance to the test for lists marked `soon` without a date. */
 const SOON_MS = 7 * 86_400_000
+/** English lists within this distance of the test run in sprint mode: many new words fast. */
+export const SPRINT_MS = 5 * 86_400_000
+/** Share of new words in sprint mode while unseen words remain. */
+const SPRINT_FRESH = { min: 0.75, max: 0.9 }
 
 /**
  * Picks the next word and question type, and keeps the learning state of one
@@ -91,6 +95,14 @@ export class WordEngine {
     if (!this.toets.date) return this.toets.soon ? SOON_MS : null
     const ms = new Date(`${this.toets.date}T08:30:00`).getTime() - this.now()
     return ms > 0 ? ms : null
+  }
+
+  /**
+   * Sprint mode (English lists, test within 5 days): mostly new words, typing
+   * after one right choice, one clean typing = learned, sentences back after 2 hours.
+   */
+  sprint(toTest: number | null = this.msToTest()): boolean {
+    return this.lang === 'en' && toTest !== null && toTest <= SPRINT_MS
   }
 
   snapshot(): Record<string, WordState> {
@@ -177,7 +189,10 @@ export class WordEngine {
   mixFor(unseen: number, toTest: number | null): { due: number; fresh: number; known: number } {
     if (toTest === null || unseen === 0 || toTest > 14 * 86_400_000) return this.mix
     const daysLeft = Math.max(1, toTest / 86_400_000 - 1)
-    const needed = Math.min(0.85, Math.max(0.6, unseen / (daysLeft * 20)))
+    // Sprint: at least 75% new words while there are unseen ones, so every word comes by before the test.
+    const needed = this.sprint(toTest)
+      ? Math.min(SPRINT_FRESH.max, Math.max(SPRINT_FRESH.min, unseen / (daysLeft * 20)))
+      : Math.min(0.85, Math.max(0.6, unseen / (daysLeft * 20)))
     if (needed <= this.mix.fresh) return this.mix
     const rest = 1 - needed
     const scale = rest / (this.mix.due + this.mix.known)
@@ -191,7 +206,7 @@ export class WordEngine {
     let type: QuestionType
     if (this.lang === 'en') {
       // English lists: only EN to NL. Choose the Dutch, or type it (never for short sentences).
-      type = forceType ?? typeForEn(s, sentenceItem, this.rng.next())
+      type = forceType ?? typeForEn(s, sentenceItem, this.rng.next(), this.sprint())
       if (type !== 'type' || sentenceItem) type = 'reverse'
     } else {
       type = forceType ?? typeFor(s, Boolean(q.sentence), this.rng.next())
@@ -212,7 +227,7 @@ export class WordEngine {
     for (const [k, s] of this.states) {
       if (k !== word && s.retryIn > 0) this.states.set(k, { ...s, retryIn: s.retryIn - 1 })
     }
-    const next = applyAnswer(prev, type, outcome, this.now(), this.msToTest(), this.isSentence(word))
+    const next = applyAnswer(prev, type, outcome, this.now(), this.msToTest(), this.isSentence(word), this.sprint())
     this.states.set(word, next)
     this.lastWord = word
     return { before, after: statusOf(next) }

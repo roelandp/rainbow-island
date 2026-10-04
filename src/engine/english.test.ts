@@ -330,3 +330,49 @@ describe('soon: undated test that is close', () => {
     expect(real?.soon).toBe(false)
   })
 })
+
+describe('sprint: English list with the test within 5 days', () => {
+  const t0 = new Date('2026-10-04T08:00:00').getTime()
+  const dated: Toets = { ...toets, date: '2026-10-08' }
+
+  it('switches on within 5 days of the test, only for English', () => {
+    expect(new WordEngine({ toets: dated, seed: 1, now: () => t0 }).sprint()).toBe(true)
+    expect(new WordEngine({ toets: dated, seed: 1, now: () => t0 - 3 * DAY }).sprint()).toBe(false)
+    expect(new WordEngine({ toets: { ...dated, language: 'nl' }, seed: 1, now: () => t0 }).sprint()).toBe(false)
+    expect(new WordEngine({ toets, seed: 1, now: () => t0 }).sprint()).toBe(false)
+  })
+
+  it('gives new words at least 75% of the picks while unseen words remain', () => {
+    const e = new WordEngine({ toets: dated, seed: 1, now: () => t0 })
+    expect(e.mixFor(55, e.msToTest()).fresh).toBeGreaterThanOrEqual(0.75)
+    expect(e.mixFor(0, e.msToTest()).fresh).toBe(0.25)
+  })
+
+  it('types after one right choice, and one clean typing is learned', () => {
+    let s = applyAnswer(emptyState(), 'reverse', 'correct', t0, 3 * DAY, false, true)
+    expect(typeForEn(s, false, 0.5, true)).toBe('type')
+    expect(typeForEn(s, false, 0.5, false)).toBe('reverse')
+    s = applyAnswer(s, 'type', 'correct', t0 + 60_000, 3 * DAY, false, true)
+    expect(s.box).toBeGreaterThanOrEqual(4)
+    expect(statusOf(s)).toBe('geleerd')
+    // with a hint it is not learned yet
+    const hinted = applyAnswer(applyAnswer(emptyState(), 'reverse', 'correct', t0, 3 * DAY, false, true), 'type', 'hint', t0 + 60_000, 3 * DAY, false, true)
+    expect(statusOf(hinted)).not.toBe('geleerd')
+  })
+
+  it('brings a sentence back after 2 hours and learns it with 2 spaced right answers', () => {
+    let s = applyAnswer(emptyState(), 'reverse', 'correct', t0, 3 * DAY, true, true)
+    expect(s.dueAt).toBe(t0 + 2 * HOUR)
+    s = applyAnswer(s, 'reverse', 'correct', t0 + 7 * HOUR, 3 * DAY, true, true)
+    expect(s.box).toBeGreaterThanOrEqual(4)
+    expect(statusOf(s)).toBe('geleerd')
+  })
+
+  it('a missed word comes back after 3 questions, once', () => {
+    let s = applyAnswer(emptyState(), 'reverse', 'wrong', t0, 3 * DAY, false, true)
+    expect(s.retryIn).toBe(3)
+    s = applyAnswer({ ...s, retryIn: 0 }, 'reverse', 'wrong', t0 + 2 * 60_000, 3 * DAY, false, true)
+    expect(s.retryIn).toBe(-1)
+    expect(s.dueAt).toBe(t0 + 2 * 60_000 + 2 * HOUR)
+  })
+})

@@ -47,7 +47,14 @@ const iso = (t: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function simulate(seed: number, miss: MissChance) {
+/** Round start times (minutes after midnight) for 2, 3 or 4 rounds a day. */
+const ROUND_TIMES: Record<number, number[]> = {
+  2: [8 * 60, 15 * 60 + 30],
+  3: [8 * 60, 15 * 60 + 30, 19 * 60],
+  4: [7 * 60 + 30, 12 * 60 + 30, 15 * 60 + 30, 19 * 60],
+}
+
+function simulate(seed: number, miss: MissChance, roundsPerDay = ROUNDS_PER_DAY) {
   const toets = parseToetsen({ familie } as never)[0]
   const testDay = toets.date ?? null
   const rng = makeRng(seed)
@@ -71,7 +78,7 @@ function simulate(seed: number, miss: MissChance) {
     const dayStart = START + (day - 1) * DAY
     const entry: DayLog = { day, date: iso(dayStart), seen: 0, learned: 0, almost: 0, learnedSentences: 0, right: 0, asked: 0, types: {} }
     // Morning round around 8:00 (none on the test day itself: school), afternoon round around 15:30.
-    const minutes = entry.date === testDay ? [15 * 60 + 30] : [8 * 60, 15 * 60 + 30].slice(0, ROUNDS_PER_DAY)
+    const minutes = entry.date === testDay ? [15 * 60 + 30] : ROUND_TIMES[roundsPerDay]
     const starts = minutes.map((m) => dayStart + (m + Math.floor(rng.next() * 20)) * MINUTE)
     let engine: WordEngine | null = null
     for (const roundStart of starts) {
@@ -124,7 +131,7 @@ function simulate(seed: number, miss: MissChance) {
     }
   }
   const last = log[log.length - 1]
-  return { total, testDay, sentences: sentenceWords.size, daySeen, dayLearned, dayEverLearned, everLearned: everLearned.size, beforeTest, last, log, states }
+  return { roundsPerDay, total, testDay, sentences: sentenceWords.size, daySeen, dayLearned, dayEverLearned, everLearned: everLearned.size, beforeTest, last, log, states }
 }
 
 function summary(name: string, sim: ReturnType<typeof simulate>): string {
@@ -137,7 +144,7 @@ function summary(name: string, sim: ReturnType<typeof simulate>): string {
     .map(([w, s]) => `${w} (box ${s.box}, typed ${s.typedClean}, dir ${s.dirClean.reverse})`)
   const b = sim.beforeTest
   return [
-    `== ${name}: ${sim.total} woorden (${sim.sentences} korte zinnen), ${ROUNDS_PER_DAY} rondes van ${ROUND_LENGTH} per dag, toets ${sim.testDay ?? 'geen datum'}`,
+    `== ${name}: ${sim.total} woorden (${sim.sentences} korte zinnen), ${sim.roundsPerDay} rondes van ${ROUND_LENGTH} per dag, toets ${sim.testDay ?? 'geen datum'}`,
     ...lines,
     b ? `Voor de toets (avond ${b.date}): gezien ${b.seen}/${sim.total}, geleerd ${b.learned}, bijna ${b.almost}, zinnen geleerd ${b.learnedSentences}/${sim.sentences}` : '',
     `Alles gezien op dag: ${sim.daySeen ?? 'nooit'}`,
@@ -186,5 +193,39 @@ describe('simulation: a flat 20% wrong, also on known words (stress test, report
     const sim = simulate(20261004, FLAT)
     console.log(summary('Altijd 20% fout', sim))
     expect(sim.daySeen).not.toBeNull()
+  })
+})
+
+describe('simulation: sprint before the test, 2, 3 and 4 rounds a day', () => {
+  const day = (sim: ReturnType<typeof simulate>, date: string) => sim.log.find((d) => d.date === date)!
+  const sims = Object.fromEntries([2, 3, 4].map((r) => [r, simulate(20261004, IMPROVING, r)])) as Record<number, ReturnType<typeof simulate>>
+
+  it('prints the numbers before the test', () => {
+    for (const rounds of [2, 3, 4]) {
+      const sim = sims[rounds]
+      const tue = day(sim, '2026-10-06')
+      const wed = day(sim, '2026-10-07')
+      console.log(
+        `${rounds} rondes per dag: di 6 okt gezien ${tue.seen}/${sim.total} (geleerd ${tue.learned}); wo 7 okt avond gezien ${wed.seen}/${sim.total}, geleerd ${wed.learned} (zinnen ${wed.learnedSentences}/${sim.sentences})`,
+      )
+    }
+  })
+
+  it('2 rounds a day: nearly every word comes by before the test', () => {
+    // 80 questions before the test for 55 items, misses come back once: seeing all
+    // of them AND learning half does not fit in 80 questions (see the 3-round case).
+    const wed = day(sims[2], '2026-10-07')
+    expect(wed.seen).toBeGreaterThanOrEqual(48)
+    expect(wed.learned).toBeGreaterThanOrEqual(4)
+  })
+
+  it('3 rounds a day: all seen by Tuesday, half learned by Wednesday evening', () => {
+    expect(day(sims[3], '2026-10-06').seen).toBe(55)
+    expect(day(sims[3], '2026-10-07').learned).toBeGreaterThanOrEqual(28)
+  })
+
+  it('4 rounds a day: all seen by Tuesday, most learned by Wednesday evening', () => {
+    expect(day(sims[4], '2026-10-06').seen).toBe(55)
+    expect(day(sims[4], '2026-10-07').learned).toBeGreaterThanOrEqual(40)
   })
 })

@@ -174,9 +174,10 @@ export const EN_CHOICE_STEPS = 2
  * sentences are only ever chosen. Two misses in a row while typing: one choice
  * question to get the word back; strong words now and then get a choice for variety.
  */
-export function typeForEn(s: WordState, isSentence: boolean, roll: number): QuestionType {
+export function typeForEn(s: WordState, isSentence: boolean, roll: number, sprint = false): QuestionType {
   if (isSentence) return 'reverse'
-  if (s.right.type === 0 && s.right.reverse < EN_CHOICE_STEPS) return 'reverse'
+  // Sprint (test close): one right choice is enough before typing.
+  if (s.right.type === 0 && s.right.reverse < (sprint ? 1 : EN_CHOICE_STEPS)) return 'reverse'
   if (s.wrongStreak >= 2) return 'reverse'
   if (s.box >= 4 && s.typedClean >= 2 && roll < 0.2) return 'reverse'
   return 'type'
@@ -196,6 +197,7 @@ export function applyAnswer(
   now: number,
   msToTest: number | null,
   isSentence = false,
+  sprint = false,
 ): WordState {
   const s: WordState = { ...prev, right: { ...prev.right }, dirClean: { ...prev.dirClean }, dirAt: { ...prev.dirAt } }
   s.seen++
@@ -214,6 +216,8 @@ export function applyAnswer(
       // The top box and "geleerd" need some time between two typings, not two in one sitting.
       const spaced = prev.typedClean === 0 || now - prev.lastSeen >= SPACING_MS
       if (spaced) s.typedClean++
+      // Sprint: one clean typing proves the word, it counts as learned straight away.
+      if (sprint) s.typedClean = Math.max(s.typedClean, 2)
       const fresh = prev.last !== 'wrong' && prev.last !== 'almost'
       let box = Math.min(MAX_BOX, fresh ? Math.max(prev.box + 1, 4) : prev.box + 1)
       if (!spaced) box = Math.min(box, Math.max(prev.box, 4))
@@ -231,6 +235,8 @@ export function applyAnswer(
           s.dirAt[type] = now
         }
       }
+      // Sprint: the second spaced right answer makes the sentence learned (box 4).
+      if (sprint && s.dirClean.reverse >= SENTENCE_DIR_NEEDED) s.box = Math.max(s.box, 4) as Box
     } else if (outcome === 'correct') {
       // Choice questions lift a word up to box 3 at most; the top boxes are earned by typing.
       if (s.box < 3) s.box = (s.box + 1) as Box
@@ -238,6 +244,8 @@ export function applyAnswer(
       if (prev.seen === 0 && type === 'recognize') s.right.reverse = Math.max(1, s.right.reverse)
     }
     s.dueAt = now + intervalMs(s.box, msToTest)
+    // Sprint: a sentence comes back in a later round (2+ hours), when a right answer counts again.
+    if (sprint && isSentence && !sentenceLearned(s)) s.dueAt = now + SPACING_MS
   } else if (outcome === 'almost') {
     s.streak = 0
     s.wrongStreak = 0
@@ -251,6 +259,13 @@ export function applyAnswer(
     s.box = 1
     s.retryIn = 2
     s.dueAt = now
+    if (sprint) {
+      // Sprint: back after about 3 other questions, once. Missed again right after:
+      // it waits for a later round, so new words keep coming.
+      const missedTwice = prev.last === 'wrong' && now - prev.lastSeen < SPACING_MS
+      s.retryIn = missedTwice ? -1 : 3
+      if (missedTwice) s.dueAt = now + SPACING_MS
+    }
   }
   return s
 }
