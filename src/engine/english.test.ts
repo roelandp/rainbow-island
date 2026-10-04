@@ -324,7 +324,9 @@ describe('soon: undated test that is close', () => {
     expect(new WordEngine({ toets: soon, seed: 1, now: () => 0 }).msToTest()).toBe(7 * DAY)
     expect(new WordEngine({ toets, seed: 1, now: () => 0 }).msToTest()).toBeNull()
   })
-  it('the real list is marked soon', () => {
-    expect(TOETSEN.find((t) => t.id === 'engels_familie')?.soon).toBe(true)
+  it('a real date wins over soon', () => {
+    const real = TOETSEN.find((t) => t.id === 'engels_familie')
+    expect(real?.date).toBe('2026-10-08')
+    expect(real?.soon).toBe(false)
   })
 })
