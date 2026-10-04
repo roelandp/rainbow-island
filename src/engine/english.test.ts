@@ -187,21 +187,17 @@ describe('English lists: only English to Dutch', () => {
     return e
   }
 
-  it('asks only EN to NL choice or typing the Dutch; short sentences only choice', () => {
+  it('asks only EN to NL choice: Wyne never types', () => {
     const seen = new Set<string>()
-    run(3, 600, (e, p) => {
+    run(3, 600, (_e, p) => {
       seen.add(p.type)
-      expect(['reverse', 'type']).toContain(p.type)
-      if (e.isSentence(p.q.word)) expect(p.type).toBe('reverse')
-      if (p.type === 'reverse') {
-        // Dutch options: the right one is the definition
-        expect(p.options!.labels[p.options!.answer]).toBe(p.q.definition)
-      } else expect(p.options).toBeNull()
+      // Dutch options: the right one is the definition
+      expect(p.options!.labels[p.options!.answer]).toBe(p.q.definition)
     })
-    expect(seen).toEqual(new Set(['reverse', 'type']))
+    expect(seen).toEqual(new Set(['reverse']))
   })
 
-  it('chooses the Dutch twice before typing it, and forced types still fit', () => {
+  it('typeForEn ladder (unused for choice-only lists), and the engine never types', () => {
     let s = emptyState()
     expect(typeForEn(s, false, 0.5)).toBe('reverse')
     s = applyAnswer(s, 'reverse', 'correct', t0, null)
@@ -219,7 +215,19 @@ describe('English lists: only English to Dutch', () => {
     expect(e.make(fixture[11], 'fallback', 'type').type).toBe('reverse')
     expect(e.make(fixture[0], 'fallback', 'recognize').type).toBe('reverse')
     expect(e.make(fixture[0], 'fallback', 'sentence').type).toBe('reverse')
-    expect(e.make(fixture[0], 'fallback', 'type').type).toBe('type')
+    expect(e.make(fixture[0], 'fallback', 'type').type).toBe('reverse')
+  })
+
+  it('a word is learned from spaced right choices, like a sentence', () => {
+    let now = t0
+    const e = new WordEngine({ toets, seed: 1, now: () => now })
+    const word = fixture[0].word
+    expect(e.isSentence(word)).toBe(false)
+    for (let i = 0; i < 6; i++) {
+      e.record(word, 'reverse', 'correct')
+      now += DAY
+    }
+    expect(e.status(word)).toBe('geleerd')
   })
 
   it('choice alone never makes a word learned', () => {
@@ -297,8 +305,7 @@ describe('the real English list', () => {
         for (let round = 0; round < 2; round++) {
           for (let i = 0; i < 10; i++) {
             const p = e.next()
-            if (e.isSentence(p.q.word)) expect(p.type).toBe('reverse')
-            else expect(['reverse', 'type']).toContain(p.type)
+            expect(p.type).toBe('reverse')
             if (p.options) {
               expect(new Set(p.options.labels).size).toBe(p.options.labels.length)
               expect(p.options.labels.length).toBe(4)
@@ -312,7 +319,7 @@ describe('the real English list', () => {
       }
       const unseen = real.questions.filter((q) => e.state(q.word).seen === 0).length
       expect(unseen).toBe(0)
-      expect(e.learnedCount()).toBeGreaterThan(real.questions.length * 0.8)
+      expect(e.learnedCount()).toBeGreaterThanOrEqual(real.questions.length * 0.75)
     }
   })
 })

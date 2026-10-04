@@ -21,8 +21,8 @@ function gradeText(g: number): string {
 
 /**
  * Practice test: every word of the active test in random order. English lists:
- * the English is shown and read aloud, the Dutch is typed (short sentences: the
- * Dutch is chosen from 4). No hints and no feedback per question; the result
+ * the English is shown and read aloud, the Dutch is chosen from 4 (Wyne
+ * never types). No hints and no feedback per question; the result
  * comes at the end. Only English is ever read aloud.
  */
 export function toetsScreen(app: App): Screen {
@@ -47,7 +47,7 @@ export function toetsScreen(app: App): Screen {
         el('h2', { text: toets.title }),
         el('p', {
           text: isEn
-            ? `Je krijgt alle ${toets.questions.length} woorden en zinnen, door elkaar. Je ziet het Engels en typt het Nederlands. Bij een zin kies je het goede Nederlands. Net als op school: geen hints. Pas aan het eind zie je hoe het ging. Elk goed antwoord levert een blok op.`
+            ? `Je krijgt alle ${toets.questions.length} woorden en zinnen, door elkaar. Je ziet het Engels en kiest het goede Nederlands. Geen hints. Pas aan het eind zie je hoe het ging. Elk goed antwoord levert een blok op.`
             : `Je krijgt alle ${toets.questions.length} woorden, door elkaar. Je ziet de betekenis en typt het woord. Net als op school: geen hints, en pas aan het eind zie je hoe het ging. Elk goed woord levert een blok op.`,
         }),
         el('button.btn.primary', { style: { width: '100%' }, onclick: () => run() }, 'Start de proeftoets'),
@@ -112,8 +112,8 @@ export function toetsScreen(app: App): Screen {
       prompt.className = isEn ? `q-prompt en${engine.isSentence(q.word) ? '' : ' word'}` : 'q-prompt'
       if (isEn) app.say(q.word)
       input.value = ''
-      // Short sentences are never typed: choose the right Dutch one.
-      if (engine.isSentence(q.word)) {
+      // English lists are never typed: choose the right Dutch one.
+      if (engine.choiceOnly(q.word)) {
         const pick = engine.make(q, 'fallback', 'reverse')
         const opts = pick.options!
         const long = opts.labels.some((l) => l.length > 26)

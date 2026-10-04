@@ -77,6 +77,14 @@ export class WordEngine {
     return this.lang === 'en' && englishKind(word) === 'sentence'
   }
 
+  /**
+   * English lists are choice only: Wyne (7) never types. Every item then uses
+   * the short-sentence rule: learned at box 4+ with 2 spaced right EN to NL answers.
+   */
+  choiceOnly(_word: string): boolean {
+    return this.lang === 'en'
+  }
+
   state(word: string): WordState {
     return this.states.get(word) ?? emptyState()
   }
@@ -202,10 +210,10 @@ export class WordEngine {
   /** A pick for a given word, e.g. for the practice test. */
   make(q: Question, reason: PickReason, forceType?: QuestionType): Pick {
     const s = this.state(q.word)
-    const sentenceItem = this.isSentence(q.word)
+    const sentenceItem = this.choiceOnly(q.word)
     let type: QuestionType
     if (this.lang === 'en') {
-      // English lists: only EN to NL. Choose the Dutch, or type it (never for short sentences).
+      // English lists: only EN to NL, and only choosing the Dutch (no typing).
       type = forceType ?? typeForEn(s, sentenceItem, this.rng.next(), this.sprint())
       if (type !== 'type' || sentenceItem) type = 'reverse'
     } else {
@@ -227,7 +235,7 @@ export class WordEngine {
     for (const [k, s] of this.states) {
       if (k !== word && s.retryIn > 0) this.states.set(k, { ...s, retryIn: s.retryIn - 1 })
     }
-    const next = applyAnswer(prev, type, outcome, this.now(), this.msToTest(), this.isSentence(word), this.sprint())
+    const next = applyAnswer(prev, type, outcome, this.now(), this.msToTest(), this.choiceOnly(word), this.sprint())
     this.states.set(word, next)
     this.lastWord = word
     return { before, after: statusOf(next) }
