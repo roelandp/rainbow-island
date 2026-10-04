@@ -1,0 +1,250 @@
+{
+  "toets_8_oktober": {
+    "title": "Toets 8 Oktober: Woordenschat (Thema Strips)",
+    "date": "2026-10-08",
+    "theme": "woordenschat",
+    "language": "nl",
+    "questions": [
+      {
+        "word": "accentueren",
+        "definition": "Benadrukken, beter laten uitkomen.",
+        "hint": "Begint met 'acc...', iets extra laten opvallen.",
+        "sentence": "Met een gele markeerstift kun je belangrijke woorden ___."
+      },
+      {
+        "word": "de animatie",
+        "definition": "Een soort tekenfilm. Beelden die op elkaar lijken, snel achter elkaar laten zien, zodat het lijkt alsof het bewegende beelden zijn.",
+        "hint": "Begint met 'ani...', zoals een film van Pixar.",
+        "sentence": "Van die bekende stripheld komt binnenkort een ___ in de bioscoop."
+      },
+      {
+        "word": "de cartoon",
+        "definition": "Een getekende mop.",
+        "hint": "Begint met 'car...', een grappig plaatje in de krant.",
+        "sentence": "Elke zaterdag staat er een grappige ___ op de achterkant van de krant."
+      },
+      {
+        "word": "de context",
+        "definition": "De omgeving waarin iets zich afspeelt, de omstandigheden.",
+        "hint": "Begint met 'con...', alles eromheen.",
+        "sentence": "Als je alleen dat ene plaatje ziet, mis je de ___ van het verhaal."
+      },
+      {
+        "word": "creëren",
+        "definition": "Scheppen, iets maken of bedenken.",
+        "hint": "Begint met 'cre...', een kunstenaar doet dit.",
+        "sentence": "Een stripmaker kan met alleen een potlood een hele nieuwe wereld ___."
+      },
+      {
+        "word": "cursief",
+        "definition": "Schuingedrukt.",
+        "hint": "Begint met 'cur...', letters die een beetje scheef staan.",
+        "sentence": "In mijn werkstuk zet ik de titels van boeken altijd ___."
+      },
+      {
+        "word": "de dialoog",
+        "definition": "Een gesprek tussen twee mensen.",
+        "hint": "Begint met 'dia...', het tegenovergestelde van een monoloog.",
+        "sentence": "In de strip voeren de twee helden een grappige ___."
+      },
+      {
+        "word": "gedetailleerd",
+        "definition": "Met de kleinste bijzonderheden erbij.",
+        "hint": "Begint met 'ged...', heel precies, met alle details.",
+        "sentence": "De tekening van het kasteel is heel ___, je ziet zelfs elke steen."
+      },
+      {
+        "word": "de gezichtsuitdrukking",
+        "definition": "De manier waarop je kijkt. Het gevoel dat je zonder woorden met je gezicht laat zien.",
+        "hint": "Begint met 'gez...', blij, boos of verdrietig kijken.",
+        "sentence": "Aan de ___ van de hond zie je meteen dat hij boos is."
+      },
+      {
+        "word": "grafisch",
+        "definition": "Als het met tekenen te maken heeft.",
+        "hint": "Begint met 'gra...', denk aan een ontwerper.",
+        "sentence": "Mijn tante is ___ ontwerper en maakt posters en logo's."
+      },
+      {
+        "word": "de identiteit",
+        "definition": "De persoonlijkheid. Dat wat je onderscheidt van anderen.",
+        "hint": "Begint met 'ide...', wie jij echt bent.",
+        "sentence": "Niemand weet de geheime ___ van de gemaskerde superheld."
+      },
+      {
+        "word": "illustreren",
+        "definition": "Tekenen. Versieren of toelichten met plaatjes.",
+        "hint": "Begint met 'ill...', plaatjes bij een verhaal maken.",
+        "sentence": "Een bekende tekenaar mag het nieuwe prentenboek van de schrijfster ___."
+      },
+      {
+        "word": "het lettertype",
+        "definition": "De lettersoort. De manier waarop de letter getekend of gedrukt is.",
+        "hint": "Begint met 'let...', zoals Arial of Comic Sans.",
+        "sentence": "Voor de tekstballonnen koos de tekenaar een rond en vrolijk ___."
+      },
+      {
+        "word": "samenhangen",
+        "definition": "Met elkaar te maken hebben.",
+        "hint": "Begint met 'sam...', dingen die bij elkaar horen.",
+        "sentence": "De plaatjes in een strip moeten goed ___, anders snap je het verhaal niet."
+      },
+      {
+        "word": "de stijl",
+        "definition": "De manier waarop je iets doet.",
+        "hint": "Begint met 'sti...', ieder kunstenaar heeft zijn eigen ...",
+        "sentence": "Je herkent die tekenaar meteen aan zijn eigen ___."
+      },
+      {
+        "word": "de strekking",
+        "definition": "Dat wat je met iets bedoelt. Het idee dat je de ander wilt duidelijk maken.",
+        "hint": "Begint met 'str...', de boodschap van een verhaal.",
+        "sentence": "De ___ van het verhaal is dat je altijd eerlijk moet zijn."
+      },
+      {
+        "word": "symboliseren",
+        "definition": "Voorstellen. Een hartje symboliseert verliefdheid.",
+        "hint": "Begint met 'sym...', iets staat ergens voor.",
+        "sentence": "In strips kan een gloeilampje boven iemands hoofd een goed idee ___."
+      },
+      {
+        "word": "treffend",
+        "definition": "Opvallend en raak.",
+        "hint": "Begint met 'tre...', precies goed gezegd.",
+        "sentence": "Haar beschrijving van de juf was heel ___, iedereen herkende haar meteen."
+      },
+      {
+        "word": "verfijnen",
+        "definition": "Uitwerken. De precieze details aanbrengen.",
+        "hint": "Begint met 'ver...', iets nog mooier en preciezer maken.",
+        "sentence": "Na de eerste schets gaat de tekenaar zijn tekening verder ___."
+      },
+      {
+        "word": "weergeven",
+        "definition": "Laten horen of laten zien.",
+        "hint": "Begint met 'wee...', iets tonen of laten zien.",
+        "sentence": "Het verslag moet precies ___ wat er in de les is gezegd."
+      },
+      {
+        "word": "de aanleiding",
+        "definition": "De reden, de oorzaak. Datgene wat iets tot gevolg heeft.",
+        "hint": "Begint met 'aan...', waardoor iets begon.",
+        "sentence": "De ___ voor de ruzie was een kapotgemaakte tekening."
+      },
+      {
+        "word": "het assortiment",
+        "definition": "Alle verschillende soorten artikelen die in een winkel te koop zijn.",
+        "hint": "Begint met 'ass...', alles wat een winkel verkoopt.",
+        "sentence": "De stripwinkel heeft een groot ___ aan stripboeken en posters."
+      },
+      {
+        "word": "beseffen",
+        "definition": "Inzien. In de gaten hebben. Je er bewust van zijn.",
+        "hint": "Begint met 'bes...', ineens snappen hoe het zit.",
+        "sentence": "Hij leek niet te ___ dat de hele klas naar hem keek."
+      },
+      {
+        "word": "combineren",
+        "definition": "Samenvoegen, koppelen. Met elkaar in verband brengen.",
+        "hint": "Begint met 'com...', twee dingen samen doen.",
+        "sentence": "Een goede stripmaker weet tekst en tekeningen slim te ___."
+      },
+      {
+        "word": "complex",
+        "definition": "Ingewikkeld.",
+        "hint": "Begint met 'com...', het tegenovergestelde van simpel.",
+        "sentence": "Deze puzzel is zo ___ dat zelfs mijn vader hem niet kan oplossen."
+      },
+      {
+        "word": "de editie",
+        "definition": "De uitgave. De manier waarop het boek is uitgegeven.",
+        "hint": "Begint met 'edi...', een speciale ... van een boek.",
+        "sentence": "Van dit stripboek is er een speciale ___ met een gouden kaft."
+      },
+      {
+        "word": "educatief",
+        "definition": "Leerzaam, bedoeld om van te leren.",
+        "hint": "Begint met 'edu...', een spel waar je iets van leert.",
+        "sentence": "Dit spel is niet alleen leuk, maar ook ___, want je oefent er de tafels mee."
+      },
+      {
+        "word": "geestig",
+        "definition": "Grappig.",
+        "hint": "Begint met 'gee...', iemand die leuke grapjes maakt.",
+        "sentence": "De grapjes van onze buurman zijn altijd erg ___."
+      },
+      {
+        "word": "op de hak nemen",
+        "definition": "Voor de gek houden. Een grapje uithalen waardoor je iemand over iets laat nadenken.",
+        "hint": "Begint met 'op d...', iemand voor de gek houden.",
+        "sentence": "In zijn nieuwe cartoon wil de tekenaar de burgemeester ___."
+      },
+      {
+        "word": "de herdruk",
+        "definition": "Een nieuwe druk van een boek dat al eerder is uitgegeven.",
+        "hint": "Begint met 'her...', een boek opnieuw drukken.",
+        "sentence": "Het boek was zo snel uitverkocht dat er al een ___ komt."
+      },
+      {
+        "word": "interpreteren",
+        "definition": "Uitleg geven of verklaren hoe je iets opvat.",
+        "hint": "Begint met 'int...', iets op jouw manier uitleggen.",
+        "sentence": "Iedereen mag dit gedicht op zijn eigen manier ___."
+      },
+      {
+        "word": "kwetsen",
+        "definition": "Beledigen. Iemands gevoelens pijnlijk treffen.",
+        "hint": "Begint met 'kwe...', iemand pijn doen met woorden.",
+        "sentence": "Met een gemeen grapje kun je iemand flink ___."
+      },
+      {
+        "word": "de reputatie",
+        "definition": "De goede of slechte naam waaronder iets of iemand bekend is.",
+        "hint": "Begint met 'rep...', wat mensen over jou denken.",
+        "sentence": "Dat restaurant heeft een goede ___, dus het zit altijd vol."
+      },
+      {
+        "word": "signeren",
+        "definition": "Je handtekening zetten.",
+        "hint": "Begint met 'sig...', een schrijver doet dit in zijn boek.",
+        "sentence": "Na de lezing gaat de striptekenaar zijn boeken ___ voor de fans."
+      },
+      {
+        "word": "specifiek",
+        "definition": "In het bijzonder, speciaal.",
+        "hint": "Begint met 'spe...', precies dat ene ding.",
+        "sentence": "Opa zoekt een heel ___ stripboek: het allereerste deel van zijn lievelingsreeks."
+      },
+      {
+        "word": "de spot drijven met",
+        "definition": "Iemand of iets belachelijk maken. Bespotten.",
+        "hint": "Begint met 'de s...', iemand uitlachen.",
+        "sentence": "Je mag nooit ___ iemand die een foutje maakt."
+      },
+      {
+        "word": "in trek zijn",
+        "definition": "Populair zijn. Als veel mensen het willen hebben.",
+        "hint": "Begint met 'in t...', iedereen wil het hebben.",
+        "sentence": "Grappige stripboeken zullen bij kinderen altijd ___."
+      },
+      {
+        "word": "verantwoord",
+        "definition": "Veilig, zonder risico's.",
+        "hint": "Begint met 'ver...', goed nagedacht en veilig.",
+        "sentence": "Mama vindt het niet ___ om in het donker zonder licht te fietsen."
+      },
+      {
+        "word": "verbeelden",
+        "definition": "Laten zien, uitbeelden. Voorstellen.",
+        "hint": "Begint met 'ver...', iets in een beeld laten zien.",
+        "sentence": "Op de kaft probeert de tekenaar het hele verhaal in één plaatje te ___."
+      },
+      {
+        "word": "volwaardig",
+        "definition": "Zonder gebreken. Als het alle kwaliteiten bezit.",
+        "hint": "Begint met 'vol...', helemaal compleet.",
+        "sentence": "Na de proeftijd is Lotte nu ___ lid van de tekenclub."
+      }
+    ]
+  }
+}

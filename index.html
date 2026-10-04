@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#cdb9ef" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Katrien" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content="Woordjes oefenen met Katrien op zijn eiland" />
+    <link rel="apple-touch-icon" href="./misc/apple-touch-icon.png" />
+    <link rel="icon" href="./misc/icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>Rainbow Island</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- Replaced as soon as the app mounts; keeps the first frame from being blank. -->
+    <div id="splash">Katrien<span>eiland...</span></div>
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: linear-gradient(180deg, #cdb9ef 0%, #bfe3f7 80%);
+        color: #fff;
+        text-shadow: 0 2px 0 #d9793a;
+        font: 900 34px/1.1 ui-rounded, 'SF Pro Rounded', -apple-system, system-ui, sans-serif;
+        z-index: 100;
+      }
+      #splash span {
+        font-size: 16px;
+        font-weight: 800;
+        color: #7f66bf;
+        text-shadow: none;
+      }
+      #splash.gone {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 300ms ease;
+      }
+    </style>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
