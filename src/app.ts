@@ -273,6 +273,15 @@ export class App {
     return n
   }
 
+  /**
+   * Words that count for island growth: learned or almost learned (box 3+).
+   * Growing on 'bijna' too means the island does not wait for the 2-hour
+   * spacing rule; the "geleerd" counter itself stays strict.
+   */
+  growTotal(): number {
+    return this.learnedTotal() + this.almostTotal()
+  }
+
   learnedIn(toets = this.toets): number {
     const words = this.store.profile.words[toets.id] ?? {}
     return toets.questions.filter((q) => words[q.word] && statusOf(words[q.word]) === 'geleerd').length
@@ -287,7 +296,7 @@ export class App {
    * Returns true when it grew just now.
    */
   syncIsland(animate: boolean): boolean {
-    const current = islandSize(this.learnedTotal()).step
+    const current = islandSize(this.growTotal()).step
     const seen = this.store.profile.island.seenStep
     const grew = animate && current > seen
     const size = sizeForStep(grew ? current : seen)
