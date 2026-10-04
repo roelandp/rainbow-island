@@ -1596,7 +1596,7 @@ input {
 
 @media (max-width: 480px) {
   .type-input::placeholder {
-    font-size: 17px;
+    font-size: 15px;
   }
   /* The result loot (up to ten chips) pushed the buttons out of view on a phone. */
   .loot {
@@ -1616,4 +1616,13 @@ input {
   font-weight: 800;
   letter-spacing: 0;
   font-feature-settings: normal;
+}
+
+/* The school handwriting has a small x-height: at 28px the Dutch answers read like 16px text. */
+.opt.nl {
+  font-size: 34px;
+  line-height: 1.15;
+}
+.options.big.long .opt.nl {
+  font-size: 30px;
 }
